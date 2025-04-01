@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crime Map - Interactive View</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
+    <style>
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            background-color: #121212;
+            color: white;
+        }
+        #map-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 1;
+        }
+        #crimeMap {
+            width: 100%;
+            height: 100%;
+            background: #1a1a1a;
+        }
+        .map-header {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            background-color: rgba(33, 37, 41, 0.8);
+            padding: 10px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+        .map-controls {
+            position: absolute;
+            top: 70px;
+            right: 10px;
+            z-index: 1000;
+            background-color: rgba(33, 37, 41, 0.8);
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+            backdrop-filter: blur(10px);
+            max-width: 300px;
+        }
+        .status-filter {
+            margin-bottom: 15px;
+        }
+        .toggle-switch {
+            margin-bottom: 10px;
+        }
+        .btn-circle {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            margin: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .map-legend {
+            position: absolute;
+            bottom: 30px;
+            left: 10px;
+            background-color: rgba(33, 37, 41, 0.8);
+            padding: 10px 15px;
+            border-radius: 8px;
+            z-index: 1000;
+            backdrop-filter: blur(5px);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 5px;
+        }
+        .legend-color {
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            margin-right: 8px;
+            border: 1px solid rgba(255,255,255,0.5);
+        }
+        .marker-cluster {
+            background-color: rgba(255, 255, 255, 0.6);
+            border-radius: 50%;
+            color: #333;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+    </style>
+</head>
+<body>
+    <div id="map-container">
+        <div class="map-header">
+            <div class="d-flex align-items-center">
+                <i class="fas fa-map-marked-alt me-2 fa-lg"></i>
+                <h5 class="m-0">Crime Map</h5>
+            </div>
+            <div class="btn-group">
+                <button class="btn btn-sm btn-primary" id="heat-map-btn">Heat Map</button>
+                <button class="btn btn-sm btn-outline-primary" id="marker-map-btn">Markers</button>
+                <button class="btn btn-sm btn-outline-primary" id="locate-me">
+                    <i class="fas fa-location-arrow"></i> My Location
+                </button>
+                <a href="{{ url_for('admin_dashboard') }}" class="btn btn-sm btn-outline-secondary ms-2">
+                    <i class="fas fa-arrow-left"></i> Back
+                </a>
+            </div>
+        </div>
+        
+        <div class="map-controls">
+            <h6>Filter Options</h6>
+            <div class="status-filter">
+                <div class="form-check form-switch">
+                    <input class="form-check-input filter-status" type="checkbox" id="filterPending" value="pending" checked>
+                    <label class="form-check-label" for="filterPending">
+                        <i class="fas fa-circle text-warning me-1"></i> Pending Cases
+                    </label>
+                </div>
+                <div class="form-check form-switch">
+                    <input class="form-check-input filter-status" type="checkbox" id="filterInvestigating" value="investigating" checked>
+                    <label class="form-check-label" for="filterInvestigating">
+                        <i class="fas fa-circle text-info me-1"></i> Investigating
+                    </label>
+                </div>
+                <div class="form-check form-switch">
+                    <input class="form-check-input filter-status" type="checkbox" id="filterResolved" value="resolved" checked>
+                    <label class="form-check-label" for="filterResolved">
+                        <i class="fas fa-circle text-success me-1"></i> Resolved
+                    </label>
+                </div>
+            </div>
+            <div class="toggle-switch">
+                <label class="form-label">Time Range</label>
+                <select class="form-select form-select-sm" id="timeRange">
+                    <option value="all">All Time</option>
+                    <option value="24h">Last 24 Hours</option>
+                    <option value="7d">Last 7 Days</option>
+                    <option value="30d">Last 30 Days</option>
+                </select>
+            </div>
+            <div class="d-grid">
+                <button class="btn btn-primary btn-sm" id="apply-filters">
+                    <i class="fas fa-filter me-1"></i> Apply Filters
+                </button>
+                <button class="btn btn-outline-secondary btn-sm mt-2" id="reset-filters">
+                    <i class="fas fa-undo me-1"></i> Reset
+                </button>
+            </div>
+        </div>
+        
+        <div class="map-legend">
+            <div id="marker-legend">
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: #ffc107;"></div>
+                    <span>Pending Cases</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: #17a2b8;"></div>
+                    <span>Investigating</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: #28a745;"></div>
+                    <span>Resolved</span>
+                </div>
+            </div>
+            <div id="heat-legend" style="display: none;">
+                <div class="legend-item">
+                    <div style="width: 120px; height: 20px; background: linear-gradient(to right, blue, cyan, lime, yellow, red);"></div>
+                </div>
+                <div class="d-flex justify-content-between w-100">
+                    <span>Low</span>
+                    <span>High</span>
+                </div>
+            </div>
+        </div>
+        
+        <div id="crimeMap"></div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
+    <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
+    
+    <script>
+        $(document).ready(function() {
+            // Initialize the map
+            var map = L.map('crimeMap', {
+                zoomControl: false,
+                attributionControl: false
+            }).setView([20.5937, 78.9629], 5);
+
+            // Add zoom control to top right
+            L.control.zoom({
+                position: 'bottomright'
+            }).addTo(map);
+
+            // Add scale control
+            L.control.scale({
+                position: 'bottomright',
+                imperial: false
+            }).addTo(map);
+
+            // Add tile layer - using a dark theme
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+                attribution: '© OpenStreetMap contributors, © CARTO'
+            }).addTo(map);
+
+            // Initialize marker cluster group
+            var markers = L.markerClusterGroup({
+                maxClusterRadius: 50,
+                spiderfyOnMaxZoom: true,
+                showCoverageOnHover: true,
+                zoomToBoundsOnClick: true
+            });
+
+            var heatLayer = null;
+            var userMarker = null;
+            var userCircle = null;
+            var allMarkers = {};
+            var filteredHeatData = [];
+            
+            // Prepare data for heat map
+            var heatData = [];
+            var mapData = [];
+            
+            {% for report in reports %}
+                // Store report data
+                var reportData = {
+                    id: {{ report.id }},
+                    lat: {{ report.latitude }},
+                    lng: {{ report.longitude }},
+                    status: "{{ report.status }}",
+                    title: "{{ report.title }}",
+                    location: "{{ report.location }}",
+                    timestamp: "{{ report.timestamp.strftime('%Y-%m-%d %H:%M') }}"
+                };
+                
+                mapData.push(reportData);
+                
+                // Add to heat data array
+                var intensity = 
+                    "{{ report.status }}" === "pending" ? 0.3 : 
+                    "{{ report.status }}" === "investigating" ? 0.6 : 
+                    "{{ report.status }}" === "resolved" ? 0.1 : 0.2;
+                    
+                heatData.push([{{ report.latitude }}, {{ report.longitude }}, intensity]);
+            {% endfor %}
+            
+            // Function to create and add markers
+            function createMarkers() {
+                // Clear existing markers
+                markers.clearLayers();
+                allMarkers = {};
+                
+                // Create markers for each report
+                mapData.forEach(function(report) {
+                    var markerColor = 
+                        report.status === 'pending' ? '#ffc107' : 
+                        report.status === 'investigating' ? '#17a2b8' : 
+                        report.status === 'resolved' ? '#28a745' : '#6c757d';
+                    
+                    var marker = L.marker([report.lat, report.lng], {
+                        icon: L.divIcon({
+                            className: 'custom-div-icon',
+                            html: `<div style="background-color: ${markerColor}; width: 16px; height: 16px; border-radius: 50%; border: 3px solid white; box-shadow: 0 0 5px rgba(0,0,0,0.5);"></div>`,
+                            iconSize: [22, 22],
+                            iconAnchor: [11, 11]
+                        })
+                    })
+                    .bindPopup(`
+                        <div class="crime-popup" style="min-width: 250px;">
+                            <h6 style="margin-bottom: 8px;"><strong>${report.title}</strong></h6>
+                            <p style="margin-bottom: 5px;"><i class="fas fa-map-marker-alt"></i> ${report.location}</p>
+                            <p style="margin-bottom: 5px;"><i class="fas fa-clock"></i> ${report.timestamp}</p>
+                            <p style="margin-bottom: 10px;"><i class="fas fa-info-circle"></i> Status: 
+                                <span class="badge bg-${report.status === 'pending' ? 'warning' : 
+                                                report.status === 'investigating' ? 'info' : 
+                                                report.status === 'resolved' ? 'success' : 'secondary'}">
+                                    ${report.status.toUpperCase()}
+                                </span>
+                            </p>
+                            <div class="d-grid gap-1">
+                                <a href="/crime/${report.id}" class="btn btn-sm btn-primary">
+                                    <i class="fas fa-eye"></i> View Details
+                                </a>
+                                <a href="/update_report/${report.id}" class="btn btn-sm btn-info">
+                                    <i class="fas fa-edit"></i> Update Status
+                                </a>
+                            </div>
+                        </div>
+                    `);
+                    
+                    // Store marker reference
+                    allMarkers[report.id] = {
+                        marker: marker,
+                        data: report
+                    };
+                    
+                    // Check if this status is currently filtered
+                    if ($(`#filter${report.status.charAt(0).toUpperCase() + report.status.slice(1)}`).is(':checked')) {
+                        markers.addLayer(marker);
+                    }
+                });
+                
+                return markers;
+            }
+            
+            // Function to filter heat data
+            function filterHeatData() {
+                filteredHeatData = [];
+                
+                // Check which statuses are selected
+                var selectedStatuses = [];
+                $('.filter-status:checked').each(function() {
+                    selectedStatuses.push($(this).val());
+                });
+                
+                // Filter map data
+                mapData.forEach(function(report) {
+                    if (selectedStatuses.includes(report.status)) {
+                        var intensity = 
+                            report.status === 'pending' ? 0.3 : 
+                            report.status === 'investigating' ? 0.6 : 
+                            report.status === 'resolved' ? 0.1 : 0.2;
+                        filteredHeatData.push([report.lat, report.lng, intensity]);
+                    }
+                });
+                
+                // Create new heat layer
+                if (heatLayer) {
+                    map.removeLayer(heatLayer);
+                }
+                
+                heatLayer = L.heatLayer(filteredHeatData, {
+                    radius: 35,
+                    blur: 20,
+                    maxZoom: 10,
+                    gradient: {
+                        0.1: 'blue',
+                        0.3: 'cyan',
+                        0.5: 'lime',
+                        0.7: 'yellow',
+                        0.9: 'red'
+                    },
+                    minOpacity: 0.6
+                });
+                
+                return heatLayer;
+            }
+            
+            // Initialize markers and heat layer
+            createMarkers();
+            filterHeatData();
+            
+            // Switch to heat map by default
+            map.addLayer(heatLayer);
+            
+            // Handle view switching
+            $('#heat-map-btn').click(function() {
+                map.removeLayer(markers);
+                map.addLayer(heatLayer);
+                $(this).addClass('btn-primary').removeClass('btn-outline-primary');
+                $('#marker-map-btn').addClass('btn-outline-primary').removeClass('btn-primary');
+                $('#marker-legend').hide();
+                $('#heat-legend').show();
+            });
+            
+            $('#marker-map-btn').click(function() {
+                map.removeLayer(heatLayer);
+                map.addLayer(markers);
+                $(this).addClass('btn-primary').removeClass('btn-outline-primary');
+                $('#heat-map-btn').addClass('btn-outline-primary').removeClass('btn-primary');
+                $('#heat-legend').hide();
+                $('#marker-legend').show();
+            });
+            
+            // Handle status filter changes
+            $('#apply-filters').click(function() {
+                // Update markers
+                markers.clearLayers();
+                
+                Object.values(allMarkers).forEach(function(item) {
+                    var statusFilter = `#filter${item.data.status.charAt(0).toUpperCase() + item.data.status.slice(1)}`;
+                    if ($(statusFilter).is(':checked')) {
+                        markers.addLayer(item.marker);
+                    }
+                });
+                
+                // Update heat layer
+                filterHeatData();
+                
+                // Update the current view
+                if ($('#heat-map-btn').hasClass('btn-primary')) {
+                    map.addLayer(heatLayer);
+                } else {
+                    map.addLayer(markers);
+                }
+            });
+            
+            // Reset filters
+            $('#reset-filters').click(function() {
+                $('.filter-status').prop('checked', true);
+                $('#timeRange').val('all');
+                $('#apply-filters').click();
+            });
+            
+            // Handle location button click
+            $('#locate-me').click(function() {
+                if (navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition(function(position) {
+                        var lat = position.coords.latitude;
+                        var lng = position.coords.longitude;
+                        var accuracy = position.coords.accuracy;
+
+                        // Remove existing user marker and circle if they exist
+                        if (userMarker) map.removeLayer(userMarker);
+                        if (userCircle) map.removeLayer(userCircle);
+
+                        // Add new user marker and accuracy circle
+                        userMarker = L.marker([lat, lng], {
+                            icon: L.divIcon({
+                                className: 'custom-div-icon',
+                                html: `<div style="background-color: #4285f4; width: 14px; height: 14px; border-radius: 50%; border: 3px solid white; box-shadow: 0 0 5px rgba(0,0,0,0.5);"></div>`,
+                                iconSize: [20, 20],
+                                iconAnchor: [10, 10]
+                            })
+                        }).addTo(map);
+
+                        userCircle = L.circle([lat, lng], {
+                            radius: accuracy,
+                            color: '#4285f4',
+                            fillColor: '#4285f4',
+                            fillOpacity: 0.15,
+                            weight: 1
+                        }).addTo(map);
+
+                        // Center map on user location
+                        map.setView([lat, lng], 15);
+                    }, function(error) {
+                        alert('Error getting location: ' + error.message);
+                    });
+                } else {
+                    alert('Geolocation is not supported by your browser');
+                }
+            });
+            
+            // Fit map bounds to show all markers if we have data
+            if (mapData.length > 0) {
+                var bounds = L.latLngBounds(mapData.map(item => [item.lat, item.lng]));
+                map.fitBounds(bounds, { padding: [50, 50] });
+            }
+            
+            // Force a map refresh
+            setTimeout(function() {
+                map.invalidateSize();
+            }, 100);
+        });
+    </script>
+</body>
+</html> 

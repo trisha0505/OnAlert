@@ -1,0 +1,663 @@
+{% extends "base.html" %}
+
+{% block title %}Neighborhood Watch{% endblock %}
+
+{% block extra_css %}
+<style>
+    .neighborhood-watch {
+        padding: 40px 20px;
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+
+    .section-title {
+        text-align: center;
+        margin-bottom: 30px;
+        color: var(--text-primary);
+    }
+
+    .watch-intro {
+        max-width: 800px;
+        margin: 0 auto 40px;
+        text-align: center;
+        color: var(--text-secondary);
+        line-height: 1.6;
+    }
+
+    .watch-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 30px;
+        margin-bottom: 50px;
+    }
+
+    .watch-card {
+        background: var(--glass-bg);
+        backdrop-filter: blur(8px);
+        border: 1px solid var(--glass-border);
+        border-radius: 15px;
+        padding: 30px;
+        transition: all 0.3s ease;
+    }
+
+    .watch-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    }
+
+    .watch-icon {
+        font-size: 3rem;
+        margin-bottom: 20px;
+        text-align: center;
+    }
+
+    .watch-card h3 {
+        margin-bottom: 20px;
+        text-align: center;
+        color: var(--text-primary);
+    }
+
+    .benefits-list {
+        padding-left: 20px;
+    }
+
+    .benefits-list li {
+        margin-bottom: 10px;
+        color: var(--text-secondary);
+    }
+
+    .registration form {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+    }
+
+    .form-group {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .form-group label {
+        margin-bottom: 5px;
+        color: var(--text-primary);
+    }
+
+    .form-control {
+        padding: 10px 15px;
+        border-radius: 8px;
+        border: 1px solid var(--glass-border);
+        background: rgba(255, 255, 255, 0.1);
+        color: var(--text-primary);
+    }
+
+    .form-check {
+        display: flex;
+        align-items: center;
+        margin-top: 10px;
+    }
+
+    .form-check-input {
+        margin-right: 10px;
+    }
+
+    .btn-primary {
+        background-color: #007bff;
+        color: white;
+        border: none;
+        padding: 12px 20px;
+        border-radius: 8px;
+        font-weight: 600;
+        margin-top: 10px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .btn-primary:hover {
+        background-color: #0056b3;
+        transform: translateY(-2px);
+    }
+
+    .btn-secondary {
+        background-color: #6c757d;
+        color: white;
+        border: none;
+        padding: 8px 15px;
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .btn-secondary:hover {
+        background-color: #5a6268;
+        transform: translateY(-2px);
+    }
+
+    .community-features {
+        margin-bottom: 50px;
+    }
+
+    .community-features h3 {
+        text-align: center;
+        margin-bottom: 30px;
+        color: var(--text-primary);
+    }
+
+    .features-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 25px;
+    }
+
+    .feature-card {
+        background: var(--glass-bg);
+        backdrop-filter: blur(8px);
+        border: 1px solid var(--glass-border);
+        border-radius: 15px;
+        padding: 25px;
+        text-align: center;
+        transition: all 0.3s ease;
+    }
+
+    .feature-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+    }
+
+    .feature-icon {
+        font-size: 2.5rem;
+        margin-bottom: 15px;
+    }
+
+    .feature-card h4 {
+        margin-bottom: 10px;
+        color: var(--text-primary);
+    }
+
+    .feature-card p {
+        margin-bottom: 20px;
+        color: var(--text-secondary);
+    }
+
+    .app-buttons {
+        display: flex;
+        justify-content: center;
+        gap: 10px;
+        margin-top: 15px;
+    }
+
+    .app-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        background-color: #333;
+        color: white;
+        padding: 8px 15px;
+        border-radius: 20px;
+        text-decoration: none;
+        font-weight: 600;
+        font-size: 0.9rem;
+        transition: all 0.3s ease;
+    }
+
+    .app-btn:hover {
+        background-color: #555;
+        transform: translateY(-2px);
+        color: white;
+    }
+
+    .safety-tips {
+        margin-bottom: 30px;
+    }
+
+    .safety-tips h3 {
+        text-align: center;
+        margin-bottom: 30px;
+        color: var(--text-primary);
+    }
+
+    .tips-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 25px;
+    }
+
+    .tip-card {
+        background: var(--glass-bg);
+        backdrop-filter: blur(8px);
+        border: 1px solid var(--glass-border);
+        border-radius: 15px;
+        padding: 25px;
+        transition: all 0.3s ease;
+    }
+
+    .tip-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    }
+
+    .tip-card h4 {
+        margin-bottom: 15px;
+        text-align: center;
+        color: var(--text-primary);
+    }
+
+    .tip-card ul {
+        padding-left: 20px;
+    }
+
+    .tip-card li {
+        margin-bottom: 8px;
+        color: var(--text-secondary);
+    }
+
+    /* Meeting Schedule Modal */
+    .modal-content.glass-effect {
+        background: var(--glass-bg);
+        backdrop-filter: blur(8px);
+        border: 1px solid var(--glass-border);
+    }
+
+    .modal-header {
+        border-bottom: 1px solid var(--glass-border);
+    }
+
+    .modal-title {
+        color: var(--text-primary);
+    }
+
+    .meetings-list {
+        max-height: 400px;
+        overflow-y: auto;
+    }
+
+    .meeting-item {
+        padding: 15px;
+        border-bottom: 1px solid var(--glass-border);
+    }
+
+    .meeting-item:last-child {
+        border-bottom: none;
+    }
+
+    .meeting-item h6 {
+        color: var(--text-primary);
+        margin-bottom: 5px;
+    }
+
+    .meeting-item p {
+        color: var(--text-secondary);
+        margin-bottom: 5px;
+    }
+
+    /* Light theme fixes */
+    [data-theme="light"] .watch-card,
+    [data-theme="light"] .feature-card,
+    [data-theme="light"] .tip-card,
+    [data-theme="light"] .modal-content.glass-effect {
+        background: white;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+    }
+
+    [data-theme="light"] .form-control {
+        background: white;
+        border-color: rgba(0, 0, 0, 0.1);
+    }
+
+    /* Animation for success message */
+    @keyframes slideInDown {
+        from {
+            transform: translate3d(0, -100%, 0);
+            visibility: visible;
+        }
+        to {
+            transform: translate3d(0, 0, 0);
+        }
+    }
+
+    .success-message {
+        animation: slideInDown 0.5s;
+    }
+
+    /* Make the background of the registration form stand out a bit more */
+    .registration {
+        background: var(--glass-bg-dark, var(--glass-bg));
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+        .watch-grid, 
+        .features-grid,
+        .tips-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="neighborhood-watch">
+    <h2 class="section-title">Join Neighborhood Watch</h2>
+    
+    <div class="watch-intro">
+        <p>Join your local neighborhood watch program to help keep your community safe. Work together with your neighbors and local law enforcement to prevent crime and build a safer environment.</p>
+    </div>
+
+    <div class="watch-grid">
+        <!-- Benefits Card -->
+        <div class="watch-card">
+            <div class="watch-icon">👥</div>
+            <h3>Benefits of Joining</h3>
+            <ul class="benefits-list">
+                <li>Direct communication with local police</li>
+                <li>Real-time crime alerts for your area</li>
+                <li>Community safety training sessions</li>
+                <li>Access to crime prevention resources</li>
+                <li>Network with neighbors for better security</li>
+                <li>Contribute to community safety</li>
+            </ul>
+        </div>
+
+        <!-- Registration Form -->
+        <div class="watch-card registration">
+            <h3>Register for Neighborhood Watch</h3>
+            <form id="watchForm" action="{{ url_for('register_watch') }}" method="POST">
+                <div class="form-group">
+                    <label for="name">Full Name</label>
+                    <input type="text" class="form-control" id="name" name="name" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="address">Address</label>
+                    <input type="text" class="form-control" id="address" name="address" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="phone">Phone Number</label>
+                    <input type="tel" class="form-control" id="phone" name="phone" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <input type="email" class="form-control" id="email" name="email" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="area">Neighborhood Area</label>
+                    <select class="form-control" id="area" name="area" required>
+                        <option value="">Select your area</option>
+                        {% for area in areas %}
+                        <option value="{{ area }}">{{ area }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="form-check">
+                    <input type="checkbox" class="form-check-input" id="volunteer" name="volunteer">
+                    <label class="form-check-label" for="volunteer">
+                        I would like to volunteer as an area coordinator
+                    </label>
+                </div>
+                
+                <button type="submit" class="btn btn-primary">Register</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Community Features -->
+    <div class="community-features">
+        <h3>Community Features</h3>
+        <div class="features-grid">
+            <div class="feature-card">
+                <div class="feature-icon">📱</div>
+                <h4>Mobile App</h4>
+                <p>Download our mobile app to stay connected with your neighborhood watch group.</p>
+                <div class="app-buttons">
+                    <a href="#" class="app-btn">
+                        <i class="fab fa-google-play"></i> Google Play
+                    </a>
+                    <a href="#" class="app-btn">
+                        <i class="fab fa-apple"></i> App Store
+                    </a>
+                </div>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">📅</div>
+                <h4>Community Meetings</h4>
+                <p>Join monthly meetings to discuss safety concerns and strategies.</p>
+                <button class="btn btn-secondary" onclick="showMeetings()">View Schedule</button>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">📢</div>
+                <h4>Alert System</h4>
+                <p>Receive instant alerts about suspicious activities in your area.</p>
+                <button class="btn btn-secondary" onclick="setupAlerts()">Setup Alerts</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Safety Tips -->
+    <div class="safety-tips">
+        <h3>Safety Tips for Watch Members</h3>
+        <div class="tips-grid">
+            <div class="tip-card">
+                <h4>Observation</h4>
+                <ul>
+                    <li>Be aware of suspicious activities</li>
+                    <li>Note down important details</li>
+                    <li>Report unusual behavior</li>
+                </ul>
+            </div>
+
+            <div class="tip-card">
+                <h4>Communication</h4>
+                <ul>
+                    <li>Use the group chat responsibly</li>
+                    <li>Verify information before sharing</li>
+                    <li>Follow communication protocols</li>
+                </ul>
+            </div>
+
+            <div class="tip-card">
+                <h4>Action Steps</h4>
+                <ul>
+                    <li>Never confront suspects</li>
+                    <li>Contact police for emergencies</li>
+                    <li>Document incidents properly</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Meeting Schedule Modal -->
+<div class="modal fade" id="meetingsModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content glass-effect">
+            <div class="modal-header">
+                <h5 class="modal-title">Community Meetings Schedule</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="meetings-list">
+                    <!-- Meetings will be loaded dynamically -->
+                    <div class="text-center py-4 d-none" id="loadingMeetings">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p class="mt-2">Loading meeting schedule...</p>
+                    </div>
+                    <div class="text-center py-4 d-none" id="noMeetings">
+                        <p>No upcoming meetings scheduled at this time.</p>
+                        <p class="text-muted">Check back later for updates.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+function showMeetings() {
+    // Show loading indicator
+    const loadingElement = document.getElementById('loadingMeetings');
+    const noMeetingsElement = document.getElementById('noMeetings');
+    const meetingsList = document.querySelector('.meetings-list');
+    
+    // Reset the meetings list
+    Array.from(meetingsList.children).forEach(child => {
+        if (!child.id) {
+            meetingsList.removeChild(child);
+        } else {
+            child.classList.add('d-none');
+        }
+    });
+    
+    // Show the loading indicator
+    loadingElement.classList.remove('d-none');
+    
+    // Show the modal
+    new bootstrap.Modal(document.getElementById('meetingsModal')).show();
+    
+    // Fetch and display meetings
+    fetch("{{ url_for('get_meetings') }}")
+        .then(response => response.json())
+        .then(meetings => {
+            // Hide loading indicator
+            loadingElement.classList.add('d-none');
+            
+            if (meetings.length === 0) {
+                // Show no meetings message
+                noMeetingsElement.classList.remove('d-none');
+            } else {
+                // Create and append meeting items
+                meetings.forEach(meeting => {
+                    const meetingItem = document.createElement('div');
+                    meetingItem.className = 'meeting-item';
+                    meetingItem.innerHTML = `
+                        <h6>${meeting.title}</h6>
+                        <p><strong>When:</strong> ${meeting.date} at ${meeting.time}</p>
+                        <p><strong>Where:</strong> ${meeting.location}</p>
+                        ${meeting.description ? `<p>${meeting.description}</p>` : ''}
+                    `;
+                    meetingsList.appendChild(meetingItem);
+                });
+            }
+        })
+        .catch(error => {
+            console.error('Error fetching meetings:', error);
+            loadingElement.classList.add('d-none');
+            
+            // Show error message
+            const errorItem = document.createElement('div');
+            errorItem.className = 'text-center py-4 text-danger';
+            errorItem.innerHTML = '<p>Failed to load meetings. Please try again later.</p>';
+            meetingsList.appendChild(errorItem);
+        });
+}
+
+function setupAlerts() {
+    // Redirect to alerts setup page if logged in, otherwise show login modal
+    {% if current_user.is_authenticated %}
+    window.location.href = "{{ url_for('setup_alerts') }}";
+    {% else %}
+    showLoginRequiredModal();
+    {% endif %}
+}
+
+function showLoginRequiredModal() {
+    // Create modal dynamically if not exists
+    let loginModal = document.getElementById('loginRequiredModal');
+    
+    if (!loginModal) {
+        loginModal = document.createElement('div');
+        loginModal.className = 'modal fade';
+        loginModal.id = 'loginRequiredModal';
+        loginModal.setAttribute('tabindex', '-1');
+        
+        loginModal.innerHTML = `
+            <div class="modal-dialog">
+                <div class="modal-content glass-effect">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Login Required</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p>You need to be logged in to set up alerts.</p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        <a href="{{ url_for('login') }}" class="btn btn-primary">Login</a>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(loginModal);
+    }
+    
+    new bootstrap.Modal(loginModal).show();
+}
+
+// Form validation with phone number format check
+document.getElementById('watchForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    // Simple phone validation
+    const phoneInput = document.getElementById('phone');
+    const phonePattern = /^\+?[0-9]{10,15}$/;
+    
+    if (!phonePattern.test(phoneInput.value.replace(/[\s()-]/g, ''))) {
+        alert('Please enter a valid phone number (10-15 digits).');
+        phoneInput.focus();
+        return;
+    }
+    
+    // Submit the form if validation passes
+    this.submit();
+});
+
+// Check for flash messages on page load
+document.addEventListener('DOMContentLoaded', function() {
+    // This assumes Flask flash messages are rendered elsewhere in the template
+    // If there's a success message in URL query, show it manually
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.has('success')) {
+        const message = urlParams.get('success');
+        showSuccessMessage(decodeURIComponent(message));
+    }
+});
+
+function showSuccessMessage(message) {
+    // Create and show a success message
+    const alertDiv = document.createElement('div');
+    alertDiv.className = 'alert alert-success success-message';
+    alertDiv.role = 'alert';
+    alertDiv.style.position = 'fixed';
+    alertDiv.style.top = '20px';
+    alertDiv.style.left = '50%';
+    alertDiv.style.transform = 'translateX(-50%)';
+    alertDiv.style.zIndex = '9999';
+    alertDiv.style.padding = '15px 25px';
+    alertDiv.style.borderRadius = '8px';
+    alertDiv.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
+    
+    alertDiv.textContent = message || 'Successfully registered for Neighborhood Watch!';
+    
+    document.body.appendChild(alertDiv);
+    
+    // Remove after 5 seconds
+    setTimeout(() => {
+        alertDiv.style.opacity = '0';
+        alertDiv.style.transition = 'opacity 0.5s ease';
+        setTimeout(() => alertDiv.remove(), 500);
+    }, 5000);
+}
+</script>
+{% endblock %} 

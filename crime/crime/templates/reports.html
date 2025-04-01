@@ -1,0 +1,558 @@
+{% extends "base.html" %}
+
+{% block title %}Reports{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Existing styles */
+    
+    /* Enquiry Button Styles */
+    .enquiry-actions {
+        margin-top: 10px;
+    }
+    
+    .enquiry-btn {
+        display: inline-flex;
+        align-items: center;
+        background: var(--glass-bg);
+        backdrop-filter: blur(5px);
+        border: 1px solid var(--glass-border);
+        color: var(--text-primary);
+        padding: 8px 15px;
+        border-radius: 20px;
+        text-decoration: none;
+        font-weight: 600;
+        transition: all 0.3s ease;
+    }
+    
+    .enquiry-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        background: rgba(0, 123, 255, 0.2);
+        color: var(--text-primary);
+    }
+    
+    .enquiry-btn i {
+        margin-right: 8px;
+        color: #007bff;
+    }
+    
+    .enquiry-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background-color: #007bff;
+        color: white;
+        border-radius: 50%;
+        width: 22px;
+        height: 22px;
+        font-size: 0.75rem;
+        margin-left: 8px;
+    }
+    
+    /* Light theme fix */
+    [data-theme="light"] .enquiry-btn {
+        background: white;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    }
+    
+    [data-theme="light"] .enquiry-btn:hover {
+        background: rgba(0, 123, 255, 0.1);
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="reports-section">
+    <div class="reports-header">
+        <h2 class="section-title">CRIME REPORTS</h2>
+        <div class="reports-filters">
+            <select class="status-filter">
+                <option value="all">All Status</option>
+                <option value="submitted">Submitted</option>
+                <option value="reviewing">Under Review</option>
+                <option value="investigating">Investigating</option>
+                <option value="in_progress">In Progress</option>
+                <option value="resolved">Resolved</option>
+            </select>
+            <input type="text" class="search-filter" placeholder="Search reports...">
+        </div>
+    </div>
+    
+    <div class="reports-container">
+        {% if current_user.is_police %}
+        <!-- Police View -->
+        <div class="police-reports-grid">
+            {% for report in reports %}
+            <div class="police-report-card" data-status="{{ report.status }}">
+                <div class="report-header">
+                    <div class="report-title-group">
+                        <h3 class="report-title">{{ report.title }}</h3>
+                        <span class="report-date">{{ report.timestamp.strftime('%B %d, %Y at %I:%M %p') }}</span>
+                    </div>
+                    <span class="status-badge {{ report.status }}">{{ report.status|title }}</span>
+                </div>
+                
+                <div class="report-content">
+                    <div class="location-info">
+                        <i class="fas fa-map-marker-alt"></i>
+                        <span>{{ report.location }}</span>
+                    </div>
+                    <p class="description">{{ report.description }}</p>
+                    
+                    {% if report.evidence_file %}
+                    <div class="evidence-info">
+                        <i class="fas fa-file-alt"></i>
+                        <a href="{{ url_for('download_evidence', report_id=report.id) }}" class="evidence-link">
+                            View Evidence
+                        </a>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="action-buttons">
+                        <button onclick="window.location.href='{{ url_for('update_report', report_id=report.id) }}'" class="update-btn">
+                            Update Report
+                        </button>
+                        <button onclick="showMap('{{ report.id }}', {{ report.latitude }}, {{ report.longitude }})" class="map-btn">
+                            View Location
+                        </button>
+                    </div>
+                </div>
+                
+                <div id="map-{{ report.id }}" class="report-map"></div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <!-- Regular User View -->
+        {% for report in reports %}
+        <div class="report-card {% if focused_report_id == report.id %}focused{% endif %}" data-status="{{ report.status }}">
+            <div class="report-header">
+                <div class="report-title-group">
+                    <h3 class="report-title">{{ report.title }}</h3>
+                    <span class="report-date">{{ report.timestamp.strftime('%B %d, %Y at %I:%M %p') }}</span>
+                </div>
+                <span class="status-badge {{ report.status }} report-status-{{ report.id }}">{{ report.status|title }}</span>
+            </div>
+            
+            <div class="report-details">
+                <div class="location-info">
+                    <i class="fas fa-map-marker-alt"></i>
+                    <span>{{ report.location }}</span>
+                </div>
+                <p class="description">{{ report.description }}</p>
+                
+                <!-- Evidence Section -->
+                <div class="evidence-section">
+                    <button class="view-details-btn" onclick="toggleDetails('{{ report.id }}')">
+                        View Full Details
+                    </button>
+                    
+                    <div id="details-{{ report.id }}" class="details-panel">
+                        <div class="details-content">
+                            <div class="details-header">
+                                <h4>{{ report.title }}</h4>
+                                <button class="close-btn" onclick="toggleDetails('{{ report.id }}')">×</button>
+                            </div>
+                            
+                            <div class="details-body">
+                                <div class="detail-group">
+                                    <h5>Report Status</h5>
+                                    <span class="status-badge {{ report.status }} report-status-{{ report.id }}">{{ report.status|title }}</span>
+                                </div>
+
+                                <div class="detail-group">
+                                    <h5>Reported On</h5>
+                                    <p>{{ report.timestamp.strftime('%B %d, %Y at %I:%M %p') }}</p>
+                                </div>
+
+                                <div class="detail-group">
+                                    <h5>Description</h5>
+                                    <p class="report-notes-{{ report.id }}">{{ report.description }}</p>
+                                </div>
+                                
+                                <div class="detail-group">
+                                    <h5>Location Details</h5>
+                                    <p>{{ report.location }}</p>
+                                    <div class="detail-map" id="map-{{ report.id }}" 
+                                         data-latitude="{{ report.latitude }}" 
+                                         data-longitude="{{ report.longitude }}">
+                                    </div>
+                                </div>
+                                
+                                {% if report.evidence %}
+                                <div class="detail-group">
+                                    <h5>Evidence Files</h5>
+                                    <div class="evidence-file">
+                                        <i class="fas fa-file-alt"></i>
+                                        <span>{{ report.evidence }}</span>
+                                        <a href="{{ url_for('download_evidence', report_id=report.id, download='true') }}" class="download-btn">
+                                            Download
+                                        </a>
+                                    </div>
+                                </div>
+                                {% endif %}
+                                
+                                {% if report.status in ['pending', 'investigating'] %}
+                                <div class="detail-group">
+                                    <h5>Actions</h5>
+                                    <form action="{{ url_for('withdraw_report', report_id=report.id) }}" method="POST" onsubmit="return confirmWithdraw()">
+                                        <button type="submit" class="withdraw-btn">
+                                            <i class="fas fa-trash-alt"></i> Withdraw Report
+                                        </button>
+                                    </form>
+                                </div>
+                                {% endif %}
+                                
+                                <div class="detail-group">
+                                    <h5>Report Timeline</h5>
+                                    <ul class="status-history">
+                                        <li class="completed">
+                                            <span class="status-time">{{ report.timestamp.strftime('%B %d, %Y at %I:%M %p') }}</span>
+                                            <span class="status-label">Report Submitted</span>
+                                        </li>
+                                        {% if report.status != 'submitted' %}
+                                        <li class="{% if report.status in ['reviewing', 'investigating', 'in_progress', 'resolved'] %}completed{% endif %}">
+                                            <span class="status-label">Under Review</span>
+                                        </li>
+                                        {% endif %}
+                                        {% if report.status in ['investigating', 'in_progress', 'resolved'] %}
+                                        <li class="completed">
+                                            <span class="status-label">Investigation Started</span>
+                                        </li>
+                                        {% endif %}
+                                        {% if report.status in ['in_progress', 'resolved'] %}
+                                        <li class="completed">
+                                            <span class="status-label">Active Investigation</span>
+                                        </li>
+                                        {% endif %}
+                                        {% if report.status == 'resolved' %}
+                                        <li class="completed">
+                                            <span class="status-label">Case Resolved</span>
+                                        </li>
+                                        {% endif %}
+                                    </ul>
+                                </div>
+                                
+                                <!-- Enquiry Section -->
+                                <div class="detail-group">
+                                    <h5>Enquiries</h5>
+                                    <div class="enquiry-actions">
+                                        <a href="{{ url_for('view_enquiries', report_id=report.id) }}" class="enquiry-btn">
+                                            <i class="fas fa-comments"></i> 
+                                            View Enquiries 
+                                            {% if report.enquiries|length > 0 %}
+                                            <span class="enquiry-badge">{{ report.enquiries|length }}</span>
+                                            {% endif %}
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="timeline">
+                <div class="timeline-item {% if report.status == 'submitted' %}active{% endif %} {% if report.status in ['reviewing', 'investigating', 'in_progress', 'resolved'] %}completed{% endif %}">
+                    <div class="timeline-icon">📝</div>
+                    <div class="timeline-content">
+                        <h4>Report Submitted</h4>
+                        <p>{{ report.timestamp.strftime('%I:%M %p') }}</p>
+                    </div>
+                </div>
+
+                <div class="timeline-item {% if report.status == 'reviewing' %}active{% endif %} {% if report.status in ['investigating', 'in_progress', 'resolved'] %}completed{% endif %}">
+                    <div class="timeline-icon">🔍</div>
+                    <div class="timeline-content">
+                        <h4>Under Review</h4>
+                        <p>Being analyzed by our team</p>
+                    </div>
+                </div>
+
+                <div class="timeline-item {% if report.status == 'investigating' %}active{% endif %} {% if report.status in ['in_progress', 'resolved'] %}completed{% endif %}">
+                    <div class="timeline-icon">👮</div>
+                    <div class="timeline-content">
+                        <h4>Investigation Started</h4>
+                        <p>Law enforcement assigned</p>
+                    </div>
+                </div>
+
+                <div class="timeline-item {% if report.status == 'in_progress' %}active{% endif %} {% if report.status == 'resolved' %}completed{% endif %}">
+                    <div class="timeline-icon">⚡</div>
+                    <div class="timeline-content">
+                        <h4>In Progress</h4>
+                        <p>Active investigation ongoing</p>
+                    </div>
+                </div>
+
+                <div class="timeline-item {% if report.status == 'resolved' %}active{% endif %}">
+                    <div class="timeline-icon">✓</div>
+                    <div class="timeline-content">
+                        <h4>Resolved</h4>
+                        <p>Case closed</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+        {% endif %}
+    </div>
+</section>
+
+<!-- Map Modal -->
+<div id="mapModal" class="modal">
+    <div class="modal-content">
+        <span class="close">&times;</span>
+        <div id="modalMap"></div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Status filter functionality
+    const statusFilter = document.querySelector('.status-filter');
+    const searchFilter = document.querySelector('.search-filter');
+    const reportCards = document.querySelectorAll('.police-report-card, .report-card');
+
+    function filterReports() {
+        const selectedStatus = statusFilter.value;
+        const searchTerm = searchFilter.value.toLowerCase();
+
+        reportCards.forEach(card => {
+            const status = card.dataset.status;
+            const title = card.querySelector('.report-title').textContent.toLowerCase();
+            const description = card.querySelector('.description').textContent.toLowerCase();
+            const location = card.querySelector('.location-info span').textContent.toLowerCase();
+
+            const matchesStatus = selectedStatus === 'all' || status === selectedStatus;
+            const matchesSearch = searchTerm === '' || 
+                                title.includes(searchTerm) || 
+                                description.includes(searchTerm) || 
+                                location.includes(searchTerm);
+
+            card.style.display = matchesStatus && matchesSearch ? 'block' : 'none';
+        });
+    }
+
+    statusFilter.addEventListener('change', filterReports);
+    searchFilter.addEventListener('input', filterReports);
+
+    // Map modal functionality
+    const modal = document.getElementById('mapModal');
+    const span = document.getElementsByClassName('close')[0];
+    
+    window.showMap = function(reportId, lat, lng) {
+        modal.style.display = 'block';
+        setTimeout(() => {
+            const map = L.map('modalMap').setView([lat, lng], 13);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(map);
+            L.marker([lat, lng]).addTo(map);
+        }, 100);
+    }
+    
+    span.onclick = function() {
+        modal.style.display = 'none';
+    }
+    
+    window.onclick = function(event) {
+        if (event.target == modal) {
+            modal.style.display = 'none';
+        }
+    }
+
+    {% if not current_user.is_police %}
+    // Regular user functionality
+    window.toggleDetails = function(reportId) {
+        const panel = document.getElementById(`details-${reportId}`);
+        if (panel.classList.contains('active')) {
+            panel.classList.remove('active');
+        } else {
+            document.querySelectorAll('.details-panel.active').forEach(p => {
+                if (p !== panel) p.classList.remove('active');
+            });
+            panel.classList.add('active');
+            initializeDetailMap(reportId);
+        }
+    }
+    {% endif %}
+});
+
+// Confirmation function for report withdrawal
+function confirmWithdraw() {
+    return confirm("Are you sure you want to withdraw this report? This action cannot be undone.");
+}
+
+// Function to initialize maps in detail panels
+function initializeDetailMap(reportId) {
+    const mapElement = document.getElementById(`map-${reportId}`);
+    if (!mapElement) return;
+    
+    const lat = parseFloat(mapElement.dataset.latitude);
+    const lng = parseFloat(mapElement.dataset.longitude);
+    
+    if (isNaN(lat) || isNaN(lng)) return;
+    
+    // Clear any existing map
+    mapElement.innerHTML = '';
+    
+    // Set a height for the map container to ensure it's visible
+    mapElement.style.height = '300px';
+    mapElement.style.width = '100%';
+    mapElement.style.marginTop = '10px';
+    mapElement.style.borderRadius = '8px';
+    
+    // Create the map
+    setTimeout(() => {
+        const map = L.map(mapElement.id).setView([lat, lng], 14);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+        
+        // Add a marker at the crime location
+        L.marker([lat, lng]).addTo(map)
+            .bindPopup(`<strong>Crime Location</strong><br>${document.querySelector('.location-info span').textContent}`);
+        
+        // Invalidate size to ensure proper rendering
+        map.invalidateSize();
+    }, 100);
+}
+</script>
+
+<style>
+.police-reports-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 20px;
+    padding: 20px;
+}
+
+.police-report-card {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    padding: 20px;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.police-report-card .report-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 15px;
+}
+
+.police-report-card .report-content {
+    margin-bottom: 15px;
+}
+
+.police-report-card .action-buttons {
+    display: flex;
+    gap: 10px;
+    margin-top: 15px;
+}
+
+.police-report-card .update-btn,
+.police-report-card .map-btn {
+    padding: 8px 15px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.3s;
+}
+
+.police-report-card .update-btn {
+    background-color: #4CAF50;
+    color: white;
+}
+
+.police-report-card .map-btn {
+    background-color: #2196F3;
+    color: white;
+}
+
+.police-report-card .evidence-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.police-report-card .evidence-link {
+    color: #2196F3;
+    text-decoration: none;
+}
+
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.8);
+}
+
+.modal-content {
+    position: relative;
+    margin: auto;
+    padding: 20px;
+    width: 80%;
+    height: 80%;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border-radius: 10px;
+}
+
+#modalMap {
+    width: 100%;
+    height: 100%;
+    border-radius: 5px;
+}
+
+.close {
+    position: absolute;
+    right: 10px;
+    top: 5px;
+    color: #fff;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+    z-index: 1001;
+}
+
+/* Withdraw button styling */
+.withdraw-btn {
+    background-color: #e74c3c;
+    color: white;
+    border: none;
+    padding: 8px 15px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.3s ease;
+}
+
+.withdraw-btn:hover {
+    background-color: #c0392b;
+    transform: scale(1.05);
+}
+
+.withdraw-btn i {
+    font-size: 16px;
+}
+</style>
+{% endblock %} 

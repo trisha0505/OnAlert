@@ -1,0 +1,407 @@
+{% extends "base.html" %}
+
+{% block title %}First Aid Basics{% endblock %}
+
+{% block extra_css %}
+<style>
+    .first-aid {
+        padding: 40px 20px;
+    }
+    
+    .first-aid-intro {
+        max-width: 800px;
+        margin: 0 auto 30px;
+        text-align: center;
+    }
+    
+    .first-aid-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 20px;
+        margin-bottom: 40px;
+    }
+    
+    .first-aid-card {
+        background: var(--glass-bg);
+        backdrop-filter: blur(8px);
+        border: 1px solid var(--glass-border);
+        border-radius: 12px;
+        padding: 20px;
+        text-align: center;
+        transition: all 0.3s ease;
+        cursor: pointer;
+    }
+    
+    .first-aid-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    }
+    
+    .first-aid-icon {
+        font-size: 2.5rem;
+        margin-bottom: 15px;
+    }
+    
+    .first-aid-card h3 {
+        margin-bottom: 10px;
+        color: var(--text-primary);
+    }
+    
+    .first-aid-card p {
+        margin-bottom: 15px;
+        color: var(--text-secondary);
+    }
+    
+    .view-guide-btn {
+        background-color: #007bff;
+        color: white;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 20px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+    }
+    
+    .view-guide-btn:hover {
+        background-color: #0056b3;
+        transform: scale(1.05);
+    }
+    
+    .guide-steps ol, .guide-steps ul {
+        padding-left: 20px;
+    }
+    
+    .guide-steps li {
+        margin-bottom: 8px;
+    }
+    
+    .first-aid-resources {
+        text-align: center;
+        margin-top: 40px;
+    }
+    
+    .resource-buttons {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 15px;
+        margin-top: 20px;
+    }
+    
+    .resource-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        background-color: #007bff;
+        color: white;
+        padding: 10px 20px;
+        border-radius: 20px;
+        text-decoration: none;
+        font-weight: 600;
+        transition: all 0.3s ease;
+    }
+    
+    .resource-btn:hover {
+        background-color: #0056b3;
+        transform: translateY(-3px);
+        color: white;
+    }
+    
+    /* Light theme fixes */
+    [data-theme="light"] .first-aid-card {
+        background: white;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+    }
+    
+    [data-theme="light"] .glass-effect {
+        background: white;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="first-aid">
+    <h2 class="section-title">First Aid Basics</h2>
+    
+    <div class="first-aid-intro">
+        <p>Learn essential first aid skills that could help save lives in emergency situations. These basic procedures should be used while waiting for professional medical help to arrive.</p>
+    </div>
+
+    <div class="first-aid-grid">
+        <!-- CPR Guide -->
+        <div class="first-aid-card" onclick="showGuide('cpr')">
+            <div class="first-aid-icon">💗</div>
+            <h3>CPR (Cardiopulmonary Resuscitation)</h3>
+            <p>Learn the basic steps of CPR for adults, children, and infants.</p>
+            <button class="view-guide-btn">View Guide</button>
+        </div>
+
+        <!-- Bleeding Control -->
+        <div class="first-aid-card" onclick="showGuide('bleeding')">
+            <div class="first-aid-icon">🩹</div>
+            <h3>Bleeding Control</h3>
+            <p>Learn how to control severe bleeding and prevent blood loss.</p>
+            <button class="view-guide-btn">View Guide</button>
+        </div>
+
+        <!-- Burns Treatment -->
+        <div class="first-aid-card" onclick="showGuide('burns')">
+            <div class="first-aid-icon">🔥</div>
+            <h3>Burns Treatment</h3>
+            <p>Learn how to treat different types of burns and prevent infection.</p>
+            <button class="view-guide-btn">View Guide</button>
+        </div>
+
+        <!-- Choking Response -->
+        <div class="first-aid-card" onclick="showGuide('choking')">
+            <div class="first-aid-icon">😰</div>
+            <h3>Choking Response</h3>
+            <p>Learn the Heimlich maneuver and how to help choking victims.</p>
+            <button class="view-guide-btn">View Guide</button>
+        </div>
+
+        <!-- Fracture Care -->
+        <div class="first-aid-card" onclick="showGuide('fracture')">
+            <div class="first-aid-icon">🦴</div>
+            <h3>Fracture Care</h3>
+            <p>Learn how to immobilize fractures and provide initial care.</p>
+            <button class="view-guide-btn">View Guide</button>
+        </div>
+
+        <!-- Snake Bite -->
+        <div class="first-aid-card" onclick="showGuide('snakebite')">
+            <div class="first-aid-icon">🐍</div>
+            <h3>Snake Bite Treatment</h3>
+            <p>Learn the dos and don'ts of snake bite first aid.</p>
+            <button class="view-guide-btn">View Guide</button>
+        </div>
+    </div>
+
+    <!-- First Aid Guide Modal -->
+    <div class="modal fade" id="guideModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content glass-effect">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="guideTitle"></h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="guideContent"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <a href="#" id="downloadGuideBtn" class="btn btn-primary">
+                        <i class="fas fa-download"></i> Download Guide
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="first-aid-resources">
+        <h3>Additional Resources</h3>
+        <div class="resource-buttons">
+            <a href="#" class="resource-btn" onclick="downloadFirstAidManual()">
+                <i class="fas fa-book"></i>
+                Download First Aid Manual
+            </a>
+            <a href="#" class="resource-btn" onclick="showNearbyHospitals()">
+                <i class="fas fa-hospital"></i>
+                Find Nearby Hospitals
+            </a>
+            <a href="#" class="resource-btn" onclick="showTrainingCourses()">
+                <i class="fas fa-graduation-cap"></i>
+                First Aid Training Courses
+            </a>
+        </div>
+    </div>
+</section>
+
+<script>
+const guides = {
+    cpr: {
+        title: "CPR Guide",
+        content: `
+            <div class="guide-steps">
+                <h4>Steps for CPR (Adult)</h4>
+                <ol>
+                    <li>Check the scene is safe and the person is unresponsive</li>
+                    <li>Call emergency services (100 or 102)</li>
+                    <li>Check for breathing</li>
+                    <li>Begin chest compressions:
+                        <ul>
+                            <li>Place hands in center of chest</li>
+                            <li>Push hard and fast (100-120 compressions per minute)</li>
+                            <li>Allow chest to fully recoil</li>
+                        </ul>
+                    </li>
+                    <li>Give rescue breaths if trained</li>
+                    <li>Continue until help arrives or person shows signs of life</li>
+                </ol>
+            </div>
+        `
+    },
+    bleeding: {
+        title: "Bleeding Control Guide",
+        content: `
+            <div class="guide-steps">
+                <h4>Steps to Control Bleeding</h4>
+                <ol>
+                    <li>Ensure your safety (wear gloves if available)</li>
+                    <li>Apply direct pressure with clean cloth or gauze</li>
+                    <li>Maintain pressure for at least 15 minutes</li>
+                    <li>If blood soaks through, add more cloth without removing first layer</li>
+                    <li>Once bleeding slows, secure bandage firmly</li>
+                    <li>Seek medical attention</li>
+                </ol>
+            </div>
+        `
+    },
+    burns: {
+        title: "Burns Treatment Guide",
+        content: `
+            <div class="guide-steps">
+                <h4>Steps for Treating Burns</h4>
+                <ol>
+                    <li>Ensure safety and stop the burning process</li>
+                    <li>Remove jewelry and tight clothing near the burn area</li>
+                    <li>Run cool (not cold) water over the burn for 10-15 minutes</li>
+                    <li>Do not apply ice, butter, or ointments to the burn</li>
+                    <li>Cover with a sterile, non-stick bandage or clean cloth</li>
+                    <li>Do not break blisters</li>
+                    <li>Take pain relievers if needed</li>
+                    <li>Seek medical attention for:
+                        <ul>
+                            <li>Burns larger than 3 inches in diameter</li>
+                            <li>Burns on the face, hands, feet, genitals or major joints</li>
+                            <li>Deep burns affecting all layers of skin</li>
+                            <li>Burns causing white, charred or leathery skin</li>
+                        </ul>
+                    </li>
+                </ol>
+            </div>
+        `
+    },
+    choking: {
+        title: "Choking Response Guide",
+        content: `
+            <div class="guide-steps">
+                <h4>Steps for Helping a Choking Person</h4>
+                <ol>
+                    <li>Ask, "Are you choking?" If the person nods yes and cannot speak, act quickly</li>
+                    <li>Stand behind the person and slightly to one side</li>
+                    <li>Support their chest with one hand and lean them forward</li>
+                    <li>Give up to 5 sharp blows between their shoulder blades with the heel of your hand</li>
+                    <li>If back blows don't work, give abdominal thrusts (Heimlich maneuver):
+                        <ul>
+                            <li>Stand behind the person and wrap your arms around their waist</li>
+                            <li>Make a fist with one hand and place it just above their navel</li>
+                            <li>Grab your fist with your other hand</li>
+                            <li>Pull inward and upward with quick, forceful thrusts</li>
+                        </ul>
+                    </li>
+                    <li>Alternate between 5 back blows and 5 abdominal thrusts until the object is expelled</li>
+                    <li>If the person becomes unconscious, begin CPR</li>
+                </ol>
+            </div>
+        `
+    },
+    fracture: {
+        title: "Fracture Care Guide",
+        content: `
+            <div class="guide-steps">
+                <h4>Steps for Treating Suspected Fractures</h4>
+                <ol>
+                    <li>Stop any bleeding by applying pressure with a clean cloth</li>
+                    <li>Immobilize the injured area:
+                        <ul>
+                            <li>Do not move the person unless absolutely necessary</li>
+                            <li>If you must move them, use a splint to stabilize the area</li>
+                            <li>Splints can be made from firm materials (board, rolled newspaper, cardboard)</li>
+                            <li>Extend the splint beyond the joints above and below the fracture</li>
+                            <li>Secure the splint with bandages, clothing strips, or tape</li>
+                        </ul>
+                    </li>
+                    <li>Apply ice packs wrapped in cloth to reduce swelling and pain</li>
+                    <li>Elevate the injured limb if possible, keeping it higher than the heart</li>
+                    <li>Treat for shock if necessary:
+                        <ul>
+                            <li>Lay the person flat</li>
+                            <li>Elevate the legs 12 inches if no head, neck, back or leg injuries</li>
+                            <li>Keep them warm and comfortable</li>
+                        </ul>
+                    </li>
+                    <li>Seek medical attention immediately</li>
+                </ol>
+                <h4>Signs of a Fracture</h4>
+                <ul>
+                    <li>Pain that intensifies when the area is moved or pressure is applied</li>
+                    <li>Swelling and bruising</li>
+                    <li>Visible deformity or bone protruding through skin</li>
+                    <li>Inability to bear weight or use the affected area</li>
+                </ul>
+            </div>
+        `
+    },
+    snakebite: {
+        title: "Snake Bite Treatment Guide",
+        content: `
+            <div class="guide-steps">
+                <h4>Steps for Treating Snake Bites</h4>
+                <ol>
+                    <li>Move the person away from the snake - do not attempt to catch or kill the snake</li>
+                    <li>Keep the victim calm and still - movement can increase venom circulation</li>
+                    <li>Remove any jewelry or tight clothing near the bite before swelling begins</li>
+                    <li>Position the wound below the level of the heart if possible</li>
+                    <li>Clean the wound gently with soap and water if available</li>
+                    <li>Cover with a clean, dry dressing</li>
+                    <li>Mark the leading edge of swelling on the skin and note the time</li>
+                    <li>Get medical help immediately</li>
+                </ol>
+                <h4>DO NOT:</h4>
+                <ul>
+                    <li>Cut into the bite wounds</li>
+                    <li>Attempt to suck out the venom</li>
+                    <li>Apply ice or immerse in water</li>
+                    <li>Apply a tourniquet</li>
+                    <li>Give the person alcohol or medications unless directed by medical professionals</li>
+                    <li>Allow the victim to walk if avoidable</li>
+                </ul>
+                <h4>Important Information for Medical Responders:</h4>
+                <ul>
+                    <li>Time of the bite</li>
+                    <li>Description of the snake (if safely observed)</li>
+                    <li>Symptoms and progression</li>
+                    <li>First aid measures already taken</li>
+                </ul>
+            </div>
+        `
+    }
+};
+
+function showGuide(type) {
+    const guide = guides[type];
+    if (guide) {
+        document.getElementById('guideTitle').textContent = guide.title;
+        document.getElementById('guideContent').innerHTML = guide.content;
+        new bootstrap.Modal(document.getElementById('guideModal')).show();
+    }
+}
+
+function downloadFirstAidManual() {
+    // Handle manual download
+    window.location.href = "{{ url_for('download_first_aid_manual') }}";
+}
+
+function showNearbyHospitals() {
+    // Show nearby hospitals on map
+    window.location.href = "{{ url_for('nearby_hospitals') }}";
+}
+
+function showTrainingCourses() {
+    // Show available training courses
+    window.location.href = "{{ url_for('training_courses') }}";
+}
+</script>
+{% endblock %} 

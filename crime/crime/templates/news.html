@@ -1,0 +1,153 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8">
+            <h2 class="mb-4">Crime News & Alerts</h2>
+            
+            {% if current_user.is_authenticated %}
+            <div class="mb-4">
+                <a href="{{ url_for('news_preferences') }}" class="btn btn-outline-primary">
+                    <i class="fas fa-cog"></i> Manage News Preferences
+                </a>
+            </div>
+            {% endif %}
+            
+            <!-- Active Alerts Section -->
+            {% if alerts %}
+            <div class="card mb-4 border-danger">
+                <div class="card-header bg-danger text-white">
+                    <h4 class="mb-0"><i class="fas fa-exclamation-triangle"></i> Active Alerts</h4>
+                </div>
+                <div class="card-body">
+                    {% for alert in alerts %}
+                    <div class="alert alert-{{ alert.severity }} mb-3">
+                        <h5 class="alert-heading">{{ alert.title }}</h5>
+                        <p class="mb-1">{{ alert.description }}</p>
+                        <small class="text-muted">
+                            <i class="fas fa-map-marker-alt"></i> {{ alert.location }}
+                            {% if alert.expires_at %}
+                            | Expires: {{ alert.expires_at.strftime('%d %b %Y %H:%M') }}
+                            {% endif %}
+                        </small>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+            
+            <!-- News Articles Section -->
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0"><i class="fas fa-newspaper"></i> Latest News</h4>
+                </div>
+                <div class="card-body">
+                    {% if news %}
+                        {% for article in news %}
+                        <div class="news-article mb-4">
+                            <h5>{{ article.title }}</h5>
+                            <p class="text-muted mb-2">
+                                <small>
+                                    <i class="fas fa-globe"></i> {{ article.source }}
+                                    {% if article.location %}
+                                    | <i class="fas fa-map-marker-alt"></i> {{ article.location }}
+                                    {% endif %}
+                                    | <i class="fas fa-clock"></i> {{ article.published_at.strftime('%d %b %Y') }}
+                                </small>
+                            </p>
+                            <p class="mb-2">{{ article.content[:200] }}...</p>
+                            <a href="{{ article.source_url }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                                Read More <i class="fas fa-external-link-alt"></i>
+                            </a>
+                        </div>
+                        {% if not loop.last %}
+                        <hr>
+                        {% endif %}
+                        {% endfor %}
+                    {% else %}
+                        <p class="text-muted">No news articles available at the moment.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Sidebar -->
+        <div class="col-md-4">
+            <!-- Location Filter -->
+            <div class="card mb-4">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="mb-0"><i class="fas fa-filter"></i> Filters</h5>
+                </div>
+                <div class="card-body">
+                    <form action="{{ url_for('crime_news') }}" method="get">
+                        <div class="mb-3">
+                            <label for="location" class="form-label">Location</label>
+                            <input type="text" class="form-control" id="location" name="location" 
+                                   placeholder="Enter location">
+                        </div>
+                        <div class="mb-3">
+                            <label for="radius" class="form-label">Radius (km)</label>
+                            <input type="number" class="form-control" id="radius" name="radius" 
+                                   value="10" min="1" max="100">
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100">
+                            Apply Filters
+                        </button>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- Quick Stats -->
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0"><i class="fas fa-chart-bar"></i> Quick Stats</h5>
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled">
+                        <li class="mb-2">
+                            <i class="fas fa-bell text-warning"></i>
+                            Active Alerts: <strong>{{ alerts|length }}</strong>
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-newspaper text-primary"></i>
+                            News Articles: <strong>{{ news|length }}</strong>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Notification Modal -->
+<div class="modal fade" id="notificationModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Enable Notifications</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Would you like to receive notifications about new alerts and news in your area?</p>
+                <p class="text-muted">You can customize your notification preferences in the settings.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Not Now</button>
+                <a href="{{ url_for('news_preferences') }}" class="btn btn-primary">
+                    Enable Notifications
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if current_user.is_authenticated and not current_user.has_news_preferences %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var modal = new bootstrap.Modal(document.getElementById('notificationModal'));
+    modal.show();
+});
+</script>
+{% endif %}
+{% endblock %} 

@@ -1,0 +1,705 @@
+{% extends "base.html" %}
+
+{% block title %}Crime Analytics{% endblock %}
+
+{% block content %}
+<section class="crime-analytics pb-5">
+    <div class="container-fluid">
+        <!-- Header Section -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card glass-effect">
+                    <div class="card-body d-flex justify-content-between align-items-center">
+                        <h2 class="m-0"><i class="fas fa-chart-line me-2"></i>Crime Analytics Dashboard</h2>
+                        <div>
+                            <div class="btn-group">
+                                <button class="btn btn-outline-primary active" id="timeRangeMonth">30 Days</button>
+                                <button class="btn btn-outline-primary" id="timeRangeQuarter">90 Days</button>
+                                <button class="btn btn-outline-primary" id="timeRangeYear">1 Year</button>
+                            </div>
+                            <button class="btn btn-primary ms-2" id="refreshData">
+                                <i class="fas fa-sync-alt me-1"></i>Refresh
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Key Metrics Section -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card glass-effect text-white mb-4">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="text-uppercase">Cases Reported</h6>
+                                <h2 class="mb-0">{{ basic_stats.recent_24h + basic_stats.recent_week }}</h2>
+                                <div class="small"><span class="badge bg-info">{{ basic_stats.recent_24h }}</span> in the last 24 hours</div>
+                            </div>
+                            <div class="icon-box bg-primary">
+                                <i class="fas fa-file-alt fa-2x"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card glass-effect text-white mb-4">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="text-uppercase">Resolution Rate</h6>
+                                <h2 class="mb-0">{{ basic_stats.solved_percentage }}%</h2>
+                                <div class="small">of cases were resolved</div>
+                            </div>
+                            <div class="icon-box bg-success">
+                                <i class="fas fa-check-circle fa-2x"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card glass-effect text-white mb-4">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="text-uppercase">High Risk Areas</h6>
+                                <h2 class="mb-0">{{ basic_stats.high_risk_areas }}</h2>
+                                <div class="small">areas need immediate attention</div>
+                            </div>
+                            <div class="icon-box bg-danger">
+                                <i class="fas fa-exclamation-triangle fa-2x"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card glass-effect text-white mb-4">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="text-uppercase">Avg Response Time</h6>
+                                <h2 class="mb-0">{{ basic_stats.avg_response_time }} min</h2>
+                                <div class="small">from report to action</div>
+                            </div>
+                            <div class="icon-box bg-info">
+                                <i class="fas fa-stopwatch fa-2x"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts Row 1 -->
+        <div class="row mb-4">
+            <!-- Crime Distribution by Type -->
+            <div class="col-md-6">
+                <div class="card glass-effect">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-pie-chart me-2"></i>Crime Distribution by Type</h5>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="crimeTypeChart" height="300"></canvas>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Crime Status Distribution -->
+            <div class="col-md-6">
+                <div class="card glass-effect">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-tasks me-2"></i>Case Status Distribution</h5>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="statusChart" height="300"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts Row 2 -->
+        <div class="row mb-4">
+            <!-- Crime by Time of Day -->
+            <div class="col-md-6">
+                <div class="card glass-effect">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-clock me-2"></i>Crime by Time of Day</h5>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="hourlyChart" height="300"></canvas>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Crime by Day of Week -->
+            <div class="col-md-6">
+                <div class="card glass-effect">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-calendar-alt me-2"></i>Crime by Day of Week</h5>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="dailyChart" height="300"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts Row 3 -->
+        <div class="row mb-4">
+            <!-- Crime by Month -->
+            <div class="col-md-8">
+                <div class="card glass-effect">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-chart-line me-2"></i>Crime Trend (Monthly)</h5>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="monthlyChart" height="300"></canvas>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Response Time by Crime Type -->
+            <div class="col-md-4">
+                <div class="card glass-effect">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-tachometer-alt me-2"></i>Response Time by Crime Type</h5>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="responseTimeChart" height="300"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Location Analysis -->
+        <div class="row mb-4">
+            <!-- Crime Map -->
+            <div class="col-md-8">
+                <div class="card glass-effect">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0"><i class="fas fa-map-marked-alt me-2"></i>Crime Map</h5>
+                        <div class="btn-group">
+                            <button class="btn btn-sm btn-outline-primary active" data-map-view="markers">Markers</button>
+                            <button class="btn btn-sm btn-outline-primary" data-map-view="heat">Heat Map</button>
+                        </div>
+                    </div>
+                    <div class="card-body p-0">
+                        <div id="crimeMap" style="height: 500px;"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Top Crime Locations -->
+            <div class="col-md-4">
+                <div class="card glass-effect">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-map-pin me-2"></i>Top Crime Locations</h5>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="locationsChart" height="400"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Activity -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card glass-effect">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0"><i class="fas fa-history me-2"></i>Recent Case Updates</h5>
+                        <a href="{{ url_for('admin_dashboard') }}" class="btn btn-sm btn-outline-primary">View All Reports</a>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Type</th>
+                                        <th>Location</th>
+                                        <th>Status</th>
+                                        <th>Updated</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for report in recent_updates %}
+                                    <tr>
+                                        <td>{{ report.id }}</td>
+                                        <td>{{ report.title }}</td>
+                                        <td>{{ report.location }}</td>
+                                        <td>
+                                            <span class="badge {% if report.status == 'pending' %}bg-warning{% elif report.status == 'investigating' %}bg-info{% elif report.status == 'resolved' %}bg-success{% else %}bg-secondary{% endif %}">
+                                                {{ report.status|upper }}
+                                            </span>
+                                        </td>
+                                        <td>{{ report.updated_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                                        <td>
+                                            <div class="btn-group btn-group-sm">
+                                                <a href="{{ url_for('view_crime', crime_id=report.id) }}" class="btn btn-info">
+                                                    <i class="fas fa-eye"></i>
+                                                </a>
+                                                <a href="{{ url_for('update_report', report_id=report.id) }}" class="btn btn-primary">
+                                                    <i class="fas fa-edit"></i>
+                                                </a>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
+<script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
+
+<style>
+.icon-box {
+    width: 60px;
+    height: 60px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+}
+#crimeMap {
+    border-radius: 4px;
+    overflow: hidden;
+    min-height: 500px;
+}
+.marker-cluster {
+    background-color: rgba(255, 255, 255, 0.6);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.marker-cluster-small {
+    background-color: rgba(181, 226, 140, 0.6);
+}
+.marker-cluster-medium {
+    background-color: rgba(241, 211, 87, 0.6);
+}
+.marker-cluster-large {
+    background-color: rgba(253, 156, 115, 0.6);
+}
+.crime-popup {
+    min-width: 200px;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Set up color palette for charts
+    const colorPalette = [
+        'rgba(75, 192, 192, 0.8)',
+        'rgba(255, 99, 132, 0.8)',
+        'rgba(255, 205, 86, 0.8)',
+        'rgba(54, 162, 235, 0.8)',
+        'rgba(153, 102, 255, 0.8)',
+        'rgba(255, 159, 64, 0.8)',
+        'rgba(201, 203, 207, 0.8)',
+        'rgba(255, 99, 71, 0.8)',
+        'rgba(50, 205, 50, 0.8)',
+        'rgba(138, 43, 226, 0.8)'
+    ];
+    
+    // Chart 1: Crime Type Distribution
+    const crimeTypeChart = new Chart(
+        document.getElementById('crimeTypeChart'),
+        {
+            type: 'pie',
+            data: {
+                labels: {{ crime_type_labels|tojson }},
+                datasets: [{
+                    data: {{ crime_type_data|tojson }},
+                    backgroundColor: colorPalette,
+                    hoverOffset: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'right',
+                    },
+                    title: {
+                        display: true,
+                        text: 'Distribution of Crime Types'
+                    }
+                }
+            }
+        }
+    );
+    
+    // Chart 2: Status Distribution
+    const statusChart = new Chart(
+        document.getElementById('statusChart'),
+        {
+            type: 'doughnut',
+            data: {
+                labels: {{ status_labels|tojson }},
+                datasets: [{
+                    data: {{ status_data|tojson }},
+                    backgroundColor: colorPalette,
+                    hoverOffset: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'right',
+                    },
+                    title: {
+                        display: true,
+                        text: 'Case Status Distribution'
+                    }
+                }
+            }
+        }
+    );
+    
+    // Chart 3: Crime by Hour of Day
+    const hourlyChart = new Chart(
+        document.getElementById('hourlyChart'),
+        {
+            type: 'bar',
+            data: {
+                labels: {{ hourly_labels|tojson }},
+                datasets: [{
+                    label: 'Number of Crimes',
+                    data: {{ hourly_data|tojson }},
+                    backgroundColor: 'rgba(75, 192, 192, 0.6)',
+                    borderColor: 'rgba(75, 192, 192, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Number of Incidents'
+                        }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Hour of Day'
+                        }
+                    }
+                },
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Crime Incidents by Hour of Day'
+                    }
+                }
+            }
+        }
+    );
+    
+    // Chart 4: Crime by Day of Week
+    const dailyChart = new Chart(
+        document.getElementById('dailyChart'),
+        {
+            type: 'bar',
+            data: {
+                labels: {{ daily_labels|tojson }},
+                datasets: [{
+                    label: 'Number of Crimes',
+                    data: {{ daily_data|tojson }},
+                    backgroundColor: 'rgba(54, 162, 235, 0.6)',
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Number of Incidents'
+                        }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Day of Week'
+                        }
+                    }
+                },
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Crime Incidents by Day of Week'
+                    }
+                }
+            }
+        }
+    );
+    
+    // Chart 5: Monthly Trend
+    const monthlyChart = new Chart(
+        document.getElementById('monthlyChart'),
+        {
+            type: 'line',
+            data: {
+                labels: {{ monthly_labels|tojson }},
+                datasets: [{
+                    label: 'Number of Crimes',
+                    data: {{ monthly_data|tojson }},
+                    backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                    borderColor: 'rgba(255, 99, 132, 1)',
+                    borderWidth: 2,
+                    tension: 0.1,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Number of Incidents'
+                        }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Month'
+                        }
+                    }
+                },
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Monthly Crime Trend'
+                    }
+                }
+            }
+        }
+    );
+    
+    // Chart 6: Response Time by Crime Type
+    const responseTimeChart = new Chart(
+        document.getElementById('responseTimeChart'),
+        {
+            type: 'bar',
+            data: {
+                labels: {{ response_time_labels|tojson }},
+                datasets: [{
+                    label: 'Average Response Time (minutes)',
+                    data: {{ response_time_data|tojson }},
+                    backgroundColor: 'rgba(153, 102, 255, 0.6)',
+                    borderColor: 'rgba(153, 102, 255, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                scales: {
+                    x: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Minutes'
+                        }
+                    }
+                },
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Average Response Time by Crime Type'
+                    }
+                }
+            }
+        }
+    );
+    
+    // Chart 7: Top Crime Locations
+    const locationsChart = new Chart(
+        document.getElementById('locationsChart'),
+        {
+            type: 'bar',
+            data: {
+                labels: {{ location_labels|tojson }},
+                datasets: [{
+                    label: 'Number of Incidents',
+                    data: {{ location_data|tojson }},
+                    backgroundColor: 'rgba(255, 159, 64, 0.6)',
+                    borderColor: 'rgba(255, 159, 64, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                scales: {
+                    x: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Number of Incidents'
+                        }
+                    }
+                },
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Top Crime Locations'
+                    }
+                }
+            }
+        }
+    );
+    
+    // Crime Map
+    const mapElement = document.getElementById('crimeMap');
+    const mapData = {{ map_data|tojson }};
+    
+    // Initialize the map with a default view of India
+    let map = L.map('crimeMap').setView([20.5937, 78.9629], 5);
+    
+    // Add the base tile layer
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors',
+        maxZoom: 19
+    }).addTo(map);
+    
+    // Initialize marker cluster group
+    let markers = L.markerClusterGroup({
+        spiderfyOnMaxZoom: true,
+        showCoverageOnHover: true,
+        zoomToBoundsOnClick: true
+    });
+    
+    // Create heat map data array
+    let heatData = [];
+    const statusColors = {
+        'pending': '#ffc107',
+        'investigating': '#17a2b8',
+        'in_progress': '#007bff',
+        'resolved': '#28a745',
+        'closed': '#6c757d'
+    };
+    
+    // Add markers and heat data points
+    mapData.forEach(crime => {
+        // Add to heat data array
+        heatData.push([crime.lat, crime.lng, 1]);
+        
+        // Get appropriate color based on status
+        const color = statusColors[crime.status] || '#343a40';
+        
+        // Create marker with custom icon
+        const marker = L.marker([crime.lat, crime.lng])
+            .bindPopup(`
+                <div class="crime-popup">
+                    <h5>${crime.title}</h5>
+                    <p><strong>Location:</strong> ${crime.location}</p>
+                    <p><strong>Status:</strong> 
+                        <span class="badge bg-${crime.status === 'pending' ? 'warning' : 
+                                       crime.status === 'investigating' ? 'info' : 
+                                       crime.status === 'in_progress' ? 'primary' : 
+                                       crime.status === 'resolved' ? 'success' : 'secondary'}">
+                            ${crime.status.toUpperCase()}
+                        </span>
+                    </p>
+                    <p><strong>Reported:</strong> ${crime.timestamp}</p>
+                    <div class="mt-2">
+                        <a href="/crime/${crime.id}" class="btn btn-sm btn-primary">View Details</a>
+                    </div>
+                </div>
+            `);
+        
+        markers.addLayer(marker);
+    });
+    
+    // Create heat map layer
+    const heatLayer = L.heatLayer(heatData, {
+        radius: 25,
+        blur: 15,
+        maxZoom: 10,
+        gradient: {
+            0.1: 'blue',
+            0.3: 'lime',
+            0.5: 'yellow',
+            0.7: 'orange',
+            0.9: 'red'
+        }
+    });
+    
+    // Add markers layer to map by default
+    map.addLayer(markers);
+    
+    // Set up map view toggle buttons
+    document.querySelectorAll('[data-map-view]').forEach(button => {
+        button.addEventListener('click', function() {
+            // Remove active class from all buttons
+            document.querySelectorAll('[data-map-view]').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            // Add active class to clicked button
+            this.classList.add('active');
+            
+            // Get the view type
+            const view = this.getAttribute('data-map-view');
+            
+            // Switch between views
+            if (view === 'heat') {
+                map.removeLayer(markers);
+                map.addLayer(heatLayer);
+            } else {
+                map.removeLayer(heatLayer);
+                map.addLayer(markers);
+            }
+        });
+    });
+    
+    // Center map based on data points if any exist
+    if (mapData.length > 0) {
+        let bounds = L.latLngBounds(mapData.map(item => [item.lat, item.lng]));
+        map.fitBounds(bounds);
+    }
+    
+    // Adjust map size when tab becomes visible
+    setTimeout(function() {
+        map.invalidateSize();
+    }, 100);
+    
+    // Handle refresh button
+    document.getElementById('refreshData').addEventListener('click', function() {
+        location.reload();
+    });
+});
+</script>
+{% endblock %} 

@@ -1,0 +1,10 @@
+Flask
+Flask-SQLAlchemy
+Flask-Login
+Werkzeug
+Flask-Mail
+SQLAlchemy
+Pillow
+huggingface_hub
+python-dotenv
+requests

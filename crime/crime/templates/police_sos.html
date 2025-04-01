@@ -1,0 +1,569 @@
+{% extends "base.html" %}
+
+{% block title %}SOS Alerts Dashboard{% endblock %}
+
+{% block extra_css %}
+<style>
+    .alert-card {
+        border-left: 5px solid #e74c3c;
+        transition: transform 0.2s;
+    }
+    
+    .alert-card:hover {
+        transform: translateY(-5px);
+    }
+    
+    .alert-card.active {
+        border-left-color: #e74c3c;
+    }
+    
+    .alert-card.responded {
+        border-left-color: #f39c12;
+    }
+    
+    .alert-card.resolved {
+        border-left-color: #2ecc71;
+    }
+    
+    .alert-time {
+        font-size: 0.85rem;
+        color: #6c757d;
+    }
+    
+    .badge-active {
+        background-color: #e74c3c;
+    }
+    
+    .badge-responded {
+        background-color: #f39c12;
+    }
+    
+    .badge-resolved {
+        background-color: #2ecc71;
+    }
+    
+    #map {
+        height: 400px;
+        border-radius: 10px;
+    }
+    
+    .sos-alert-icon {
+        font-size: 1.2rem;
+        color: #e74c3c;
+        animation: pulse 1.5s infinite;
+    }
+    
+    @keyframes pulse {
+        0% {
+            opacity: 1;
+        }
+        50% {
+            opacity: 0.5;
+        }
+        100% {
+            opacity: 1;
+        }
+    }
+    
+    .emergency-actions {
+        display: flex;
+        gap: 10px;
+    }
+    
+    .time-elapsed {
+        font-weight: bold;
+    }
+    
+    /* Alert Counter Styles */
+    .alert-counter-container {
+        padding: 10px;
+    }
+    
+    .alert-counter {
+        background-color: #e74c3c;
+        color: white;
+        border-radius: 8px;
+        padding: 10px;
+        display: inline-flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-width: 120px;
+        box-shadow: 0 4px 10px rgba(231, 76, 60, 0.3);
+    }
+    
+    .alert-count {
+        font-size: 2.5rem;
+        font-weight: bold;
+        line-height: 1;
+    }
+    
+    .alert-label {
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+    
+    /* Alert notifications */
+    .new-alert-notification {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 9999;
+        min-width: 300px;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        border-left: 5px solid #e74c3c;
+    }
+    
+    /* Alert count animation */
+    @keyframes flash {
+        0% { background-color: #e74c3c; }
+        50% { background-color: #ff6b6b; }
+        100% { background-color: #e74c3c; }
+    }
+    
+    .new-alert {
+        animation: flash 1s 3;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-6">
+        <h2><i class="fas fa-exclamation-triangle text-danger"></i> SOS Alerts Dashboard</h2>
+        <p class="text-muted">Monitor and respond to emergency SOS alerts in real-time</p>
+    </div>
+    <div class="col-md-3">
+        {% if active_alerts %}
+        <div class="alert-counter-container text-center">
+            <div class="alert-counter">
+                <span class="alert-count">{{ active_alerts|length }}</span>
+                <span class="alert-label">Active SOS</span>
+            </div>
+            <button class="btn btn-sm btn-outline-secondary mt-2" id="toggleAlertSound">
+                <i class="fas fa-volume-up"></i> Alerts Sound: ON
+            </button>
+        </div>
+        {% endif %}
+    </div>
+    <div class="col-md-3 text-end">
+        <a href="{{ url_for('admin_dashboard') }}" class="btn btn-outline-primary">
+            <i class="fas fa-arrow-left"></i> Back to Dashboard
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <!-- SOS Alerts List -->
+    <div class="col-md-5">
+        <div class="card glass-effect mb-4">
+            <div class="card-header bg-danger text-white">
+                <h4 class="mb-0">
+                    <i class="fas fa-exclamation-circle"></i> Active SOS Alerts
+                    {% if active_alerts %}
+                    <span class="badge bg-light text-danger float-end">{{ active_alerts|length }}</span>
+                    {% endif %}
+                </h4>
+            </div>
+            <div class="card-body p-0">
+                {% if active_alerts %}
+                <div class="list-group list-group-flush" id="alertsList">
+                    {% for alert in active_alerts %}
+                    <a href="#" class="list-group-item list-group-item-action alert-card active" 
+                       onclick="showAlertDetails({{ alert.id }}, {{ alert.latitude }}, {{ alert.longitude }}, '{{ alert.location }}', '{{ alert.user.username }}', '{{ alert.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}', '{{ alert.message|default('No message provided', true)|e }}')">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h5 class="mb-1">
+                                <i class="fas fa-exclamation-circle sos-alert-icon"></i> 
+                                {{ alert.user.username }}
+                            </h5>
+                            <small class="time-elapsed" data-timestamp="{{ alert.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}">
+                                <span class="time-ago">{{ alert.timestamp.strftime('%H:%M') }}</span>
+                            </small>
+                        </div>
+                        <p class="mb-1">{{ alert.location or 'Unknown location' }}</p>
+                        <small class="alert-time">{{ alert.timestamp.strftime('%b %d, %Y at %I:%M %p') }}</small>
+                    </a>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center py-5">
+                    <i class="fas fa-check-circle text-success fa-4x mb-3"></i>
+                    <h5>No active SOS alerts</h5>
+                    <p class="text-muted">There are currently no active emergency situations.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="card glass-effect">
+            <div class="card-header">
+                <h4 class="mb-0">
+                    <i class="fas fa-history"></i> Resolved Alerts
+                </h4>
+            </div>
+            <div class="card-body p-0">
+                {% if resolved_alerts %}
+                <div class="list-group list-group-flush">
+                    {% for alert in resolved_alerts %}
+                    <a href="#" class="list-group-item list-group-item-action alert-card {{ alert.status }}" 
+                       onclick="showAlertDetails({{ alert.id }}, {{ alert.latitude }}, {{ alert.longitude }}, '{{ alert.location }}', '{{ alert.user.username }}', '{{ alert.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}', '{{ alert.message|default('No message provided', true)|e }}', '{{ alert.responder.username if alert.responder else 'Unknown' }}', '{{ alert.responder_notes|default('', true)|e }}', '{{ alert.status }}')">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h5 class="mb-1">
+                                <span class="badge badge-{{ alert.status }}">{{ alert.status|capitalize }}</span>
+                                {{ alert.user.username }}
+                            </h5>
+                            <small>
+                                {{ alert.resolved_at.strftime('%b %d') if alert.resolved_at else alert.timestamp.strftime('%b %d') }}
+                            </small>
+                        </div>
+                        <p class="mb-1">{{ alert.location or 'Unknown location' }}</p>
+                        <small>
+                            {% if alert.responder %}
+                            Handled by: {{ alert.responder.username }}
+                            {% endif %}
+                        </small>
+                    </a>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center py-4">
+                    <p class="text-muted">No resolved alerts</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Alert Details and Map -->
+    <div class="col-md-7">
+        <div class="card glass-effect mb-4">
+            <div class="card-header">
+                <h4 class="mb-0" id="alertDetailsTitle">
+                    <i class="fas fa-map-marked-alt"></i> Emergency Location
+                </h4>
+            </div>
+            <div class="card-body">
+                <div id="map"></div>
+                
+                <div id="noAlertSelected" class="text-center py-5">
+                    <i class="fas fa-map-marker-alt fa-3x text-muted mb-3"></i>
+                    <h5>Select an alert to view details</h5>
+                    <p class="text-muted">Location and details will appear here</p>
+                </div>
+                
+                <div id="alertDetails" class="mt-4 d-none">
+                    <h5>Alert Information</h5>
+                    <dl class="row">
+                        <dt class="col-sm-3">User</dt>
+                        <dd class="col-sm-9" id="alertUser">-</dd>
+                        
+                        <dt class="col-sm-3">Location</dt>
+                        <dd class="col-sm-9" id="alertLocation">-</dd>
+                        
+                        <dt class="col-sm-3">Time</dt>
+                        <dd class="col-sm-9" id="alertTime">-</dd>
+                        
+                        <dt class="col-sm-3">Status</dt>
+                        <dd class="col-sm-9" id="alertStatus">Active</dd>
+                        
+                        <dt class="col-sm-3">Message</dt>
+                        <dd class="col-sm-9" id="alertMessage">-</dd>
+                        
+                        <div id="responderSection" class="d-none">
+                            <dt class="col-sm-3">Responder</dt>
+                            <dd class="col-sm-9" id="alertResponder">-</dd>
+                            
+                            <dt class="col-sm-3">Notes</dt>
+                            <dd class="col-sm-9" id="alertNotes">-</dd>
+                        </div>
+                    </dl>
+                    
+                    <div id="emergencyActions" class="mt-3">
+                        <h5>Actions</h5>
+                        <div class="emergency-actions">
+                            <form id="respondForm" method="post" class="me-2">
+                                <div class="mb-3">
+                                    <label for="notes" class="form-label">Response Notes</label>
+                                    <textarea class="form-control" id="notes" name="notes" rows="2" placeholder="Enter notes about your response..."></textarea>
+                                </div>
+                                <button type="submit" class="btn btn-warning">
+                                    <i class="fas fa-running"></i> Respond to Alert
+                                </button>
+                            </form>
+                            
+                            <form id="resolveForm" method="post" class="d-none">
+                                <div class="mb-3">
+                                    <label for="resolveNotes" class="form-label">Resolution Notes</label>
+                                    <textarea class="form-control" id="resolveNotes" name="notes" rows="2" placeholder="Enter resolution details..."></textarea>
+                                </div>
+                                <button type="submit" class="btn btn-success">
+                                    <i class="fas fa-check-circle"></i> Mark as Resolved
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+<script>
+    let map;
+    let marker;
+    let currentAlertId = null;
+    
+    // Initialize map
+    function initMap() {
+        // Default to center of India if no alerts
+        map = L.map('map').setView([20.5937, 78.9629], 5);
+        
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+    }
+    
+    // Show alert details on map and in details panel
+    function showAlertDetails(id, lat, lng, location, username, timestamp, message, responder = null, notes = null, status = 'active') {
+        currentAlertId = id;
+        
+        // Show details panel, hide placeholder
+        document.getElementById('alertDetails').classList.remove('d-none');
+        document.getElementById('noAlertSelected').classList.add('d-none');
+        
+        // Update alert information
+        document.getElementById('alertUser').textContent = username;
+        document.getElementById('alertLocation').textContent = location || 'Unknown location';
+        document.getElementById('alertTime').textContent = formatTimestamp(timestamp);
+        document.getElementById('alertMessage').textContent = message || 'No message provided';
+        
+        // Update status and forms
+        document.getElementById('alertStatus').textContent = status.charAt(0).toUpperCase() + status.slice(1);
+        
+        // For responded or resolved alerts, show responder information
+        if (status === 'responded' || status === 'resolved') {
+            document.getElementById('responderSection').classList.remove('d-none');
+            document.getElementById('alertResponder').textContent = responder || 'Unknown';
+            document.getElementById('alertNotes').textContent = notes || 'No notes provided';
+            
+            // For responded alerts, show resolve form
+            if (status === 'responded') {
+                document.getElementById('respondForm').classList.add('d-none');
+                document.getElementById('resolveForm').classList.remove('d-none');
+                document.getElementById('resolveForm').action = `/police/resolve_sos/${id}`;
+            } else {
+                // Hide action forms for resolved alerts
+                document.getElementById('emergencyActions').classList.add('d-none');
+            }
+        } else {
+            // For active alerts, show respond form
+            document.getElementById('responderSection').classList.add('d-none');
+            document.getElementById('respondForm').classList.remove('d-none');
+            document.getElementById('resolveForm').classList.add('d-none');
+            document.getElementById('emergencyActions').classList.remove('d-none');
+            document.getElementById('respondForm').action = `/police/respond_sos/${id}`;
+        }
+        
+        // Update map
+        if (map) {
+            map.remove();
+        }
+        
+        map = L.map('map').setView([lat, lng], 15);
+        
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+        
+        // Add marker with status-dependent icon
+        let markerColor = '#e74c3c'; // Red for active
+        if (status === 'responded') markerColor = '#f39c12'; // Orange for responded
+        if (status === 'resolved') markerColor = '#2ecc71'; // Green for resolved
+        
+        const markerIcon = L.divIcon({
+            html: `<i class="fas fa-exclamation-circle" style="color: ${markerColor}; font-size: 24px;"></i>`,
+            className: 'custom-marker-icon',
+            iconSize: [30, 30],
+            iconAnchor: [15, 15]
+        });
+        
+        marker = L.marker([lat, lng], {
+            icon: markerIcon
+        }).addTo(map);
+        
+        // Add a circle to show approximate location
+        L.circle([lat, lng], {
+            color: markerColor,
+            fillColor: markerColor,
+            fillOpacity: 0.2,
+            radius: 200
+        }).addTo(map);
+        
+        // Update title
+        document.getElementById('alertDetailsTitle').innerHTML = `
+            <i class="fas fa-map-marked-alt"></i> Emergency Location 
+            <span class="badge badge-${status}">${status.charAt(0).toUpperCase() + status.slice(1)}</span>
+        `;
+    }
+    
+    // Format timestamp to readable format
+    function formatTimestamp(timestamp) {
+        const date = new Date(timestamp);
+        return new Intl.DateTimeFormat('en-US', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit'
+        }).format(date);
+    }
+    
+    // Update time elapsed for all active alerts
+    function updateTimeElapsed() {
+        const timeElements = document.querySelectorAll('.time-elapsed');
+        timeElements.forEach(element => {
+            const timestamp = new Date(element.getAttribute('data-timestamp'));
+            const now = new Date();
+            const elapsedMinutes = Math.floor((now - timestamp) / 60000);
+            
+            const timeAgoElement = element.querySelector('.time-ago');
+            
+            if (elapsedMinutes < 60) {
+                timeAgoElement.textContent = `${elapsedMinutes} mins ago`;
+            } else {
+                const hours = Math.floor(elapsedMinutes / 60);
+                timeAgoElement.textContent = `${hours} hr ${elapsedMinutes % 60} mins ago`;
+            }
+            
+            // Highlight alerts older than 30 minutes
+            if (elapsedMinutes > 30) {
+                timeAgoElement.classList.add('text-danger');
+                timeAgoElement.classList.add('fw-bold');
+            }
+        });
+    }
+    
+    // Initialize page
+    document.addEventListener('DOMContentLoaded', function() {
+        initMap();
+        updateTimeElapsed();
+        
+        // Update time elapsed every minute
+        setInterval(updateTimeElapsed, 60000);
+        
+        // Setup alert sound system
+        setupAlertSound();
+        
+        // Check for new alerts periodically
+        setInterval(checkForNewAlerts, 30000); // Check every 30 seconds
+        
+        {% if active_alerts and active_alerts|length > 0 %}
+        // Automatically select the first alert
+        const firstAlert = {{ active_alerts[0].id }};
+        const lat = {{ active_alerts[0].latitude or 'null' }};
+        const lng = {{ active_alerts[0].longitude or 'null' }};
+        
+        if (lat && lng) {
+            showAlertDetails(
+                firstAlert, 
+                lat, 
+                lng, 
+                '{{ active_alerts[0].location or "Unknown location" }}',
+                '{{ active_alerts[0].user.username }}',
+                '{{ active_alerts[0].timestamp.strftime("%Y-%m-%d %H:%M:%S") }}',
+                '{{ active_alerts[0].message|default("No message provided", true)|e }}'
+            );
+        }
+        {% endif %}
+    });
+    
+    // Alert sound functionality
+    let alertSoundEnabled = true;
+    let currentAlertCount = {{ active_alerts|length }};
+    
+    function setupAlertSound() {
+        // Create audio element for alert sound
+        const alertSound = document.createElement('audio');
+        alertSound.id = 'alertSound';
+        alertSound.src = 'https://assets.mixkit.co/sfx/preview/mixkit-alert-alarm-1005.mp3'; // Using a public alert sound
+        alertSound.preload = 'auto';
+        document.body.appendChild(alertSound);
+        
+        // Add toggle button functionality
+        const toggleButton = document.getElementById('toggleAlertSound');
+        if (toggleButton) {
+            toggleButton.addEventListener('click', function() {
+                alertSoundEnabled = !alertSoundEnabled;
+                this.innerHTML = alertSoundEnabled ? 
+                    '<i class="fas fa-volume-up"></i> Alerts Sound: ON' : 
+                    '<i class="fas fa-volume-mute"></i> Alerts Sound: OFF';
+            });
+        }
+    }
+    
+    function playAlertSound() {
+        if (alertSoundEnabled) {
+            const sound = document.getElementById('alertSound');
+            if (sound) {
+                sound.play().catch(e => console.error('Error playing sound:', e));
+            }
+        }
+    }
+    
+    function checkForNewAlerts() {
+        // Get the current time in ISO format to use as last_check
+        const lastCheck = new Date().toISOString();
+        
+        // Call the API to check for new alerts
+        fetch(`/api/police/check_new_alerts?last_check=${encodeURIComponent(lastCheck)}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.new_alerts > 0) {
+                    // Update the UI to show new alerts
+                    playAlertSound();
+                    
+                    // Update the alert count
+                    const alertCountElement = document.querySelector('.alert-count');
+                    if (alertCountElement) {
+                        alertCountElement.textContent = data.total_active_alerts;
+                        alertCountElement.classList.add('new-alert');
+                        
+                        // Add flash animation to the counter
+                        alertCountElement.style.animation = 'none';
+                        setTimeout(() => {
+                            alertCountElement.style.animation = 'flash 1s 3';
+                        }, 10);
+                    }
+                    
+                    // Show a notification 
+                    const notification = document.createElement('div');
+                    notification.className = 'alert alert-danger alert-dismissible fade show new-alert-notification';
+                    notification.innerHTML = `
+                        <strong>New SOS Alert!</strong> ${data.new_alerts} new emergency alert(s) received.
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        <div class="mt-2">
+                            <button onclick="location.reload()" class="btn btn-sm btn-danger">View Now</button>
+                        </div>
+                    `;
+                    
+                    document.body.appendChild(notification);
+                    
+                    // Remove the notification after 10 seconds if not dismissed
+                    setTimeout(() => {
+                        if (notification.parentNode) {
+                            notification.parentNode.removeChild(notification);
+                        }
+                    }, 10000);
+                }
+            })
+            .catch(error => {
+                console.error('Error checking for new alerts:', error);
+            });
+    }
+</script>
+{% endblock %} 

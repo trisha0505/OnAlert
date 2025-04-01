@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Police Department Login</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body {
+            background: linear-gradient(135deg, #1a237e, #000000);
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Roboto', sans-serif;
+            color: white;
+        }
+        .login-container {
+            width: 100%;
+            max-width: 450px;
+            padding: 20px;
+        }
+        .card {
+            background-color: rgba(0, 0, 20, 0.7);
+            border: 1px solid rgba(0, 60, 255, 0.3);
+            box-shadow: 0 0 30px rgba(0, 60, 255, 0.2);
+        }
+        .card-header {
+            background-color: rgba(0, 20, 80, 0.8);
+            border-bottom: 1px solid rgba(0, 60, 255, 0.3);
+            padding: 20px;
+        }
+        .badge-icon {
+            font-size: 4rem;
+            margin-bottom: 20px;
+            color: #4a80ff;
+        }
+        .form-control {
+            background-color: rgba(30, 40, 80, 0.5);
+            border: 1px solid rgba(0, 60, 255, 0.3);
+            color: white;
+        }
+        .form-control:focus {
+            background-color: rgba(40, 50, 100, 0.5);
+            color: white;
+            border-color: #4a80ff;
+            box-shadow: 0 0 0 0.25rem rgba(74, 128, 255, 0.25);
+        }
+        .input-group-text {
+            background-color: rgba(0, 20, 80, 0.8);
+            border: 1px solid rgba(0, 60, 255, 0.3);
+            color: #4a80ff;
+        }
+        .btn-primary {
+            background-color: #0040c0;
+            border-color: #0030a0;
+        }
+        .btn-primary:hover {
+            background-color: #0050d0;
+            border-color: #0040c0;
+        }
+        .form-label {
+            color: #a0b0ff;
+        }
+        .alert {
+            background-color: rgba(255, 100, 100, 0.2);
+            border-color: rgba(255, 50, 50, 0.5);
+            color: #ffcccc;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="text-center mb-4">
+            <div class="badge-icon">
+                <i class="fas fa-shield-alt"></i>
+            </div>
+            <h2>Police Department</h2>
+            <p class="text-muted">Secure Authentication Portal</p>
+        </div>
+        
+        <div class="card">
+            <div class="card-header">
+                <h3 class="text-center mb-0">Officer Login</h3>
+            </div>
+            <div class="card-body">
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="alert alert-danger">
+                                {{ message }}
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+                
+                <form method="POST" action="{{ url_for('police_login') }}">
+                    <div class="mb-4">
+                        <label for="username" class="form-label">Badge Number / Username</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-id-badge"></i></span>
+                            <input type="text" class="form-control" id="username" name="username" placeholder="Enter your badge number" required>
+                        </div>
+                    </div>
+                    <div class="mb-4">
+                        <label for="password" class="form-label">Password</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-lock"></i></span>
+                            <input type="password" class="form-control" id="password" name="password" placeholder="Enter your password" required>
+                        </div>
+                    </div>
+                    <div class="mb-4">
+                        <label for="jurisdiction" class="form-label">Jurisdiction</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-map-marker-alt"></i></span>
+                            <select class="form-select" id="jurisdiction" name="jurisdiction" required>
+                                <option value="">Select your jurisdiction</option>
+                                <option value="Delhi">Delhi</option>
+                                <option value="Mumbai">Mumbai</option>
+                                <option value="Kolkata">Kolkata</option>
+                                <option value="Chennai">Chennai</option>
+                                <option value="Bangalore">Bangalore</option>
+                                <option value="Hyderabad">Hyderabad</option>
+                                <option value="Ahmedabad">Ahmedabad</option>
+                                <option value="Pune">Pune</option>
+                                <option value="Jaipur">Jaipur</option>
+                                <option value="Lucknow">Lucknow</option>
+                                <option value="Maharashtra">Maharashtra</option>
+                                <option value="Tamil Nadu">Tamil Nadu</option>
+                                <option value="Karnataka">Karnataka</option>
+                                <option value="Uttar Pradesh">Uttar Pradesh</option>
+                                <option value="Gujarat">Gujarat</option>
+                                <option value="Rajasthan">Rajasthan</option>
+                                <option value="West Bengal">West Bengal</option>
+                                <option value="Bihar">Bihar</option>
+                                <option value="Punjab">Punjab</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-sign-in-alt me-2"></i>Authenticate
+                        </button>
+                    </div>
+                </form>
+            </div>
+            <div class="card-footer text-center">
+                <p class="mb-2"><strong>Note:</strong> This portal is for authorized police personnel only.</p>
+                <a href="{{ url_for('home') }}" class="btn btn-outline-light btn-sm">
+                    <i class="fas fa-home me-1"></i>Return to Public Site
+                </a>
+            </div>
+        </div>
+    </div>
+</body>
+</html> 

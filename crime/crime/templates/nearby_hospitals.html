@@ -1,0 +1,790 @@
+{% extends "base.html" %}
+
+{% block title %}Nearby Hospitals{% endblock %}
+
+{% block extra_css %}
+<style>
+    .hospitals-section {
+        padding: 40px 0;
+    }
+    
+    .hospitals-title {
+        text-align: center;
+        margin-bottom: 30px;
+        color: var(--text-primary);
+    }
+    
+    .hospitals-intro {
+        text-align: center;
+        max-width: 800px;
+        margin: 0 auto 40px;
+        color: var(--text-secondary);
+        font-size: 1.1rem;
+        line-height: 1.6;
+    }
+    
+    .hospital-search {
+        background: var(--glass-bg);
+        backdrop-filter: blur(8px);
+        border: 1px solid var(--glass-border);
+        border-radius: 15px;
+        padding: 25px;
+        margin-bottom: 30px;
+        text-align: center;
+    }
+    
+    .search-form {
+        display: flex;
+        max-width: 600px;
+        margin: 0 auto;
+    }
+    
+    .search-input {
+        flex: 1;
+        padding: 12px 15px;
+        border: 1px solid rgba(0, 0, 0, 0.1);
+        border-radius: 8px 0 0 8px;
+        font-size: 1rem;
+        outline: none;
+    }
+    
+    .search-btn {
+        padding: 12px 20px;
+        background-color: #007bff;
+        color: white;
+        border: none;
+        border-radius: 0 8px 8px 0;
+        cursor: pointer;
+        font-weight: 600;
+        transition: all 0.3s ease;
+    }
+    
+    .search-btn:hover {
+        background-color: #0056b3;
+    }
+    
+    .map-container {
+        height: 500px;
+        border-radius: 15px;
+        overflow: hidden;
+        margin-bottom: 30px;
+    }
+    
+    #hospitalsMap {
+        width: 100%;
+        height: 100%;
+    }
+    
+    /* New hospital list styles */
+    .hospital-list {
+        margin-top: 30px;
+    }
+    
+    .hospital-item {
+        display: flex;
+        align-items: stretch;
+        border-bottom: 1px solid var(--glass-border);
+        padding: 20px 0;
+        transition: all 0.3s ease;
+    }
+    
+    .hospital-item:last-child {
+        border-bottom: none;
+    }
+    
+    .hospital-item:hover {
+        background: rgba(255, 255, 255, 0.05);
+        transform: translateX(5px);
+    }
+    
+    .hospital-icon {
+        flex: 0 0 60px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+        position: relative;
+    }
+    
+    .hospital-icon i {
+        color: #007bff;
+    }
+    
+    .hospital-icon.emergency i {
+        color: #ff3b30;
+    }
+    
+    .hospital-icon.specialty i {
+        color: #5856d6;
+    }
+    
+    .hospital-icon::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background-color: #007bff;
+    }
+    
+    .hospital-icon.emergency::after {
+        background-color: #ff3b30;
+    }
+    
+    .hospital-icon.specialty::after {
+        background-color: #5856d6;
+    }
+    
+    .hospital-details {
+        flex: 1;
+        padding: 0 20px;
+    }
+    
+    .hospital-name {
+        font-size: 1.3rem;
+        font-weight: 600;
+        margin-bottom: 5px;
+        color: var(--text-primary);
+        display: flex;
+        align-items: center;
+    }
+    
+    .hospital-type {
+        font-size: 0.8rem;
+        padding: 2px 8px;
+        border-radius: 12px;
+        background-color: #007bff;
+        color: white;
+        margin-left: 10px;
+        font-weight: 500;
+    }
+    
+    .emergency-badge {
+        background-color: #ff3b30;
+    }
+    
+    .specialty-badge {
+        background-color: #5856d6;
+    }
+    
+    .hospital-meta {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 10px;
+        margin-top: 10px;
+    }
+    
+    .meta-item {
+        display: flex;
+        align-items: flex-start;
+        color: var(--text-secondary);
+    }
+    
+    .meta-item i {
+        width: 18px;
+        margin-right: 8px;
+        margin-top: 4px;
+        color: #007bff;
+    }
+    
+    .hospital-actions {
+        flex: 0 0 170px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        gap: 10px;
+    }
+    
+    .hospital-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 5px;
+        padding: 8px 15px;
+        border-radius: 20px;
+        font-weight: 600;
+        text-decoration: none;
+        transition: all 0.3s ease;
+    }
+    
+    .directions-btn {
+        background-color: #007bff;
+        color: white;
+        border: none;
+    }
+    
+    .directions-btn:hover {
+        background-color: #0056b3;
+        transform: translateY(-2px);
+        color: white;
+    }
+    
+    .call-btn {
+        background-color: #34c759;
+        color: white;
+        border: none;
+    }
+    
+    .call-btn:hover {
+        background-color: #28a745;
+        transform: translateY(-2px);
+        color: white;
+    }
+    
+    /* Loading indicator */
+    .loading-indicator {
+        display: none;
+        text-align: center;
+        margin: 20px 0;
+    }
+    
+    .loading-indicator.active {
+        display: block;
+    }
+    
+    .spinner {
+        display: inline-block;
+        width: 40px;
+        height: 40px;
+        border: 4px solid rgba(0, 123, 255, 0.3);
+        border-radius: 50%;
+        border-top-color: #007bff;
+        animation: spin 1s ease-in-out infinite;
+    }
+    
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+    
+    /* No results */
+    .no-results {
+        text-align: center;
+        padding: 40px 20px;
+        display: none;
+    }
+    
+    .no-results.active {
+        display: block;
+    }
+    
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+        .hospital-item {
+            flex-direction: column;
+        }
+        
+        .hospital-icon {
+            margin-bottom: 15px;
+        }
+        
+        .hospital-actions {
+            flex: 1;
+            flex-direction: row;
+            margin-top: 15px;
+        }
+        
+        .hospital-btn {
+            flex: 1;
+        }
+    }
+    
+    /* Light theme fixes */
+    [data-theme="light"] .hospital-search {
+        background: white;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+    }
+    
+    [data-theme="light"] .search-input {
+        border-color: rgba(0, 0, 0, 0.2);
+    }
+    
+    [data-theme="light"] .hospital-item:hover {
+        background: rgba(0, 0, 0, 0.02);
+    }
+    
+    [data-theme="light"] .hospital-btn {
+        color: white;
+    }
+    
+    [data-theme="light"] .hospital-btn:hover {
+        color: white;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="hospitals-section">
+    <div class="container">
+        <h1 class="hospitals-title">Nearby Hospitals & Emergency Centers</h1>
+        
+        <div class="hospitals-intro">
+            <p>Find hospitals, emergency centers, and medical facilities near your location. In case of a medical emergency, always call 102 for an ambulance.</p>
+        </div>
+        
+        <div class="hospital-search">
+            <form class="search-form" onsubmit="event.preventDefault(); findNearbyHospitals();">
+                <input type="text" class="search-input" placeholder="Enter your location or pincode" value="">
+                <button type="submit" class="search-btn">
+                    <i class="fas fa-search"></i> Find
+                </button>
+            </form>
+        </div>
+        
+        <div class="loading-indicator">
+            <div class="spinner"></div>
+            <p>Searching for hospitals near you...</p>
+        </div>
+        
+        <div class="map-container">
+            <div id="hospitalsMap"></div>
+        </div>
+        
+        <div class="no-results">
+            <h3><i class="fas fa-exclamation-circle"></i> No hospitals found</h3>
+            <p>We couldn't find any hospitals in this area. Please try another location or pincode.</p>
+        </div>
+        
+        <h2 class="section-title">Nearby Medical Facilities</h2>
+        
+        <div class="hospital-list" id="hospitalList">
+            <!-- Hospital items will be dynamically inserted here -->
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+    // Global variables
+    let map;
+    let markers = [];
+    let hospitalData = [];
+    
+    // Default hospitals (will be used if geolocation fails or before search)
+    const defaultHospitals = [
+        {
+            name: "City General Hospital",
+            type: "24/7 Emergency",
+            emergency: true,
+            address: "123 Medical Center Rd, Mumbai, 400001",
+            phone: "+91 22 2345 6789",
+            emergencyPhone: "+91 22 2345 6700",
+            hours: "Open 24 hours",
+            lat: 19.0760,
+            lng: 72.8777
+        },
+        {
+            name: "Apollo Medical",
+            type: "Medical Center",
+            emergency: false,
+            address: "45 Healthcare Ave, Mumbai, 400050",
+            phone: "+91 22 6789 1234",
+            hours: "8:00 AM - 10:00 PM",
+            lat: 19.1178,
+            lng: 72.9090
+        },
+        {
+            name: "Heart & Vascular Institute",
+            type: "Specialty Care",
+            specialty: true,
+            address: "78 Cardiac Lane, Mumbai, 400020",
+            phone: "+91 22 8901 2345",
+            hours: "9:00 AM - 6:00 PM (Mon-Sat)",
+            lat: 19.0330,
+            lng: 72.8353
+        },
+        {
+            name: "Lifeline Hospital",
+            type: "24/7 Emergency",
+            emergency: true,
+            address: "56 Emergency Road, Mumbai, 400076",
+            phone: "+91 22 3456 7890",
+            emergencyPhone: "+91 22 3456 7800",
+            hours: "Open 24 hours",
+            lat: 19.0821,
+            lng: 72.8416
+        }
+    ];
+    
+    // Initialize map
+    function initMap() {
+        // Create map with default center on India
+        map = L.map('hospitalsMap').setView([20.5937, 78.9629], 5);
+        
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+        
+        // Try to get user's current location
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(function(position) {
+                const userLat = position.coords.latitude;
+                const userLng = position.coords.longitude;
+                
+                // Add user marker
+                addUserMarker(userLat, userLng);
+                
+                // Center map on user's location and show nearby hospitals
+                map.setView([userLat, userLng], 13);
+                
+                // Search for hospitals near user's location
+                searchNearbyHospitals(userLat, userLng);
+            }, function(error) {
+                // If geolocation fails, show default hospitals
+                console.log("Geolocation error:", error);
+                displayHospitals(defaultHospitals);
+            });
+        } else {
+            // If geolocation not supported, show default hospitals
+            displayHospitals(defaultHospitals);
+        }
+    }
+    
+    // Add user marker to map
+    function addUserMarker(lat, lng) {
+        L.marker([lat, lng], {
+            icon: L.divIcon({
+                className: 'user-location-marker',
+                html: '<div class="pulse"></div>',
+                iconSize: [20, 20]
+            })
+        }).addTo(map).bindPopup('Your Location').openPopup();
+    }
+    
+    // Search for hospitals based on pincode or location name
+    function findNearbyHospitals() {
+        const locationInput = document.querySelector('.search-input').value;
+        if (!locationInput) {
+            alert('Please enter a location or pincode to search');
+            return;
+        }
+        
+        // Show loading indicator
+        document.querySelector('.loading-indicator').classList.add('active');
+        document.querySelector('.no-results').classList.remove('active');
+        
+        // Clear previous results
+        clearResults();
+        
+        // Use Nominatim API to convert location to coordinates
+        const searchTerm = locationInput + ", India"; // Add India for better results
+        const nominatimUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchTerm)}`;
+        
+        fetch(nominatimUrl)
+            .then(response => response.json())
+            .then(data => {
+                if (data && data.length > 0) {
+                    const location = data[0];
+                    const lat = parseFloat(location.lat);
+                    const lng = parseFloat(location.lon);
+                    
+                    // Add user marker at search location
+                    addUserMarker(lat, lng);
+                    
+                    // Center map on search location
+                    map.setView([lat, lng], 13);
+                    
+                    // Search for hospitals near this location
+                    searchNearbyHospitals(lat, lng);
+                } else {
+                    // No location found
+                    document.querySelector('.loading-indicator').classList.remove('active');
+                    document.querySelector('.no-results').classList.add('active');
+                }
+            })
+            .catch(error => {
+                console.error('Error searching location:', error);
+                document.querySelector('.loading-indicator').classList.remove('active');
+                alert('Error searching for location. Please try again.');
+                // Show default hospitals as fallback
+                displayHospitals(defaultHospitals);
+            });
+    }
+    
+    // Search for hospitals near coordinates
+    function searchNearbyHospitals(lat, lng) {
+        // In a real application, you would use a hospitals API or database
+        // Since we don't have an actual API, we'll simulate results by:
+        // 1. Using the Overpass API to get some real hospitals near the location
+        // 2. Falling back to our default hospitals with adjusted coordinates if the API fails
+        
+        const radius = 5000; // 5km radius
+        const overpassUrl = `https://overpass-api.de/api/interpreter?data=[out:json];node(around:${radius},${lat},${lng})["amenity"="hospital"];out body;node(around:${radius},${lat},${lng})["amenity"="clinic"];out body;node(around:${radius},${lat},${lng})["healthcare"="hospital"];out body;`;
+        
+        fetch(overpassUrl)
+            .then(response => response.json())
+            .then(data => {
+                document.querySelector('.loading-indicator').classList.remove('active');
+                
+                if (data && data.elements && data.elements.length > 0) {
+                    // Convert OSM data to our hospital format
+                    const hospitals = data.elements.map(element => {
+                        const isEmergency = element.tags && (
+                            element.tags.emergency === 'yes' || 
+                            (element.tags.healthcare === 'hospital' && !element.tags.emergency) ||
+                            (element.tags.name && element.tags.name.toLowerCase().includes('emergency'))
+                        );
+                        
+                        const isSpecialty = element.tags && (
+                            element.tags.healthcare === 'specialist' ||
+                            (element.tags.name && (
+                                element.tags.name.toLowerCase().includes('cardia') ||
+                                element.tags.name.toLowerCase().includes('cancer') ||
+                                element.tags.name.toLowerCase().includes('ortho') ||
+                                element.tags.name.toLowerCase().includes('neuro')
+                            ))
+                        );
+                        
+                        return {
+                            name: element.tags.name || 'Medical Facility',
+                            type: isEmergency ? '24/7 Emergency' : (isSpecialty ? 'Specialty Care' : 'Medical Center'),
+                            emergency: isEmergency,
+                            specialty: isSpecialty,
+                            address: element.tags['addr:full'] || element.tags.address || 'Location data not available',
+                            phone: element.tags.phone || element.tags['contact:phone'] || 'N/A',
+                            hours: element.tags.opening_hours || (isEmergency ? 'Open 24 hours' : 'Hours not available'),
+                            lat: element.lat,
+                            lng: element.lon
+                        };
+                    });
+                    
+                    // Display the hospitals
+                    if (hospitals.length > 0) {
+                        displayHospitals(hospitals);
+                    } else {
+                        // No hospitals found, show nearest default hospitals
+                        const nearestDefaultHospitals = getNearestDefaultHospitals(lat, lng);
+                        displayHospitals(nearestDefaultHospitals);
+                    }
+                } else {
+                    // No results from Overpass API, use adjusted default hospitals
+                    const nearestDefaultHospitals = getNearestDefaultHospitals(lat, lng);
+                    displayHospitals(nearestDefaultHospitals);
+                }
+            })
+            .catch(error => {
+                console.error('Error searching hospitals:', error);
+                document.querySelector('.loading-indicator').classList.remove('active');
+                
+                // Fallback to default hospitals with adjusted locations
+                const nearestDefaultHospitals = getNearestDefaultHospitals(lat, lng);
+                displayHospitals(nearestDefaultHospitals);
+            });
+    }
+    
+    // Get default hospitals but adjust their coordinates to be near the search location
+    function getNearestDefaultHospitals(lat, lng) {
+        return defaultHospitals.map((hospital, index) => {
+            // Create a slight offset from the search location
+            const latOffset = 0.01 * Math.cos(index * Math.PI/2);
+            const lngOffset = 0.01 * Math.sin(index * Math.PI/2);
+            
+            return {
+                ...hospital,
+                lat: lat + latOffset,
+                lng: lng + lngOffset
+            };
+        });
+    }
+    
+    // Display hospitals on map and in list
+    function displayHospitals(hospitals) {
+        // Store globally
+        hospitalData = hospitals;
+        
+        // Clear existing markers and hospital list
+        clearResults();
+        
+        // Add markers for each hospital
+        hospitals.forEach(hospital => {
+            addHospitalMarker(hospital);
+        });
+        
+        // Populate hospital list
+        const hospitalListElement = document.getElementById('hospitalList');
+        
+        hospitals.forEach(hospital => {
+            const item = document.createElement('div');
+            item.className = 'hospital-item';
+            
+            // Set icon and type classes based on hospital type
+            let iconClass = 'hospital-icon';
+            let typeClass = '';
+            if (hospital.emergency) {
+                iconClass += ' emergency';
+                typeClass = 'emergency-badge';
+            } else if (hospital.specialty) {
+                iconClass += ' specialty';
+                typeClass = 'specialty-badge';
+            }
+            
+            item.innerHTML = `
+                <div class="${iconClass}">
+                    <i class="fas fa-hospital-alt"></i>
+                </div>
+                <div class="hospital-details">
+                    <div class="hospital-name">
+                        ${hospital.name}
+                        <span class="hospital-type ${typeClass}">${hospital.type}</span>
+                    </div>
+                    <div class="hospital-meta">
+                        <div class="meta-item">
+                            <i class="fas fa-map-marker-alt"></i>
+                            <span>${hospital.address}</span>
+                        </div>
+                        <div class="meta-item">
+                            <i class="fas fa-phone-alt"></i>
+                            <span>${hospital.phone}</span>
+                        </div>
+                        ${hospital.emergencyPhone ? `
+                        <div class="meta-item">
+                            <i class="fas fa-ambulance"></i>
+                            <span>Emergency: ${hospital.emergencyPhone}</span>
+                        </div>
+                        ` : ''}
+                        <div class="meta-item">
+                            <i class="fas fa-clock"></i>
+                            <span>${hospital.hours}</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="hospital-actions">
+                    <a href="#" class="hospital-btn directions-btn" onclick="getDirections(${hospital.lat}, ${hospital.lng})">
+                        <i class="fas fa-directions"></i> Directions
+                    </a>
+                    <a href="tel:${hospital.phone.replace(/\s+/g, '')}" class="hospital-btn call-btn">
+                        <i class="fas fa-phone"></i> Call
+                    </a>
+                </div>
+            `;
+            
+            hospitalListElement.appendChild(item);
+        });
+        
+        // Show/hide no results message
+        if (hospitals.length === 0) {
+            document.querySelector('.no-results').classList.add('active');
+        } else {
+            document.querySelector('.no-results').classList.remove('active');
+        }
+    }
+    
+    // Add a hospital marker to the map
+    function addHospitalMarker(hospital) {
+        let iconClass = 'hospital-marker';
+        if (hospital.emergency) {
+            iconClass += ' emergency-marker';
+        } else if (hospital.specialty) {
+            iconClass += ' specialty-marker';
+        }
+        
+        const marker = L.marker([hospital.lat, hospital.lng], {
+            icon: L.divIcon({
+                className: iconClass,
+                html: '<i class="fas fa-hospital-alt"></i>',
+                iconSize: [32, 32]
+            })
+        });
+        
+        marker.addTo(map).bindPopup(`
+            <strong>${hospital.name}</strong><br>
+            ${hospital.type}<br>
+            <small>${hospital.address}</small><br>
+            <a href="#" onclick="getDirections(${hospital.lat}, ${hospital.lng}); return false;">Get Directions</a>
+        `);
+        
+        markers.push(marker);
+    }
+    
+    // Clear all results (markers and hospital list)
+    function clearResults() {
+        // Clear markers from map
+        markers.forEach(marker => {
+            map.removeLayer(marker);
+        });
+        markers = [];
+        
+        // Clear hospital list
+        const hospitalListElement = document.getElementById('hospitalList');
+        hospitalListElement.innerHTML = '';
+    }
+    
+    // Get directions to a hospital
+    function getDirections(lat, lng) {
+        window.open(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`, '_blank');
+    }
+    
+    // Initialize the map when DOM is loaded
+    document.addEventListener('DOMContentLoaded', function() {
+        // Add some styling for the map markers
+        const style = document.createElement('style');
+        style.textContent = `
+            .user-location-marker {
+                background: rgba(0, 123, 255, 0.1);
+                border-radius: 50%;
+            }
+            
+            .pulse {
+                background: #007bff;
+                width: 16px;
+                height: 16px;
+                border-radius: 50%;
+                position: relative;
+                box-shadow: 0 0 0 rgba(0, 123, 255, 0.4);
+                animation: pulse 2s infinite;
+            }
+            
+            @keyframes pulse {
+                0% {
+                    box-shadow: 0 0 0 0 rgba(0, 123, 255, 0.4);
+                }
+                70% {
+                    box-shadow: 0 0 0 15px rgba(0, 123, 255, 0);
+                }
+                100% {
+                    box-shadow: 0 0 0 0 rgba(0, 123, 255, 0);
+                }
+            }
+            
+            .hospital-marker {
+                background: white;
+                border-radius: 50%;
+                width: 32px;
+                height: 32px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            }
+            
+            .hospital-marker i {
+                color: #007bff;
+                font-size: 18px;
+            }
+            
+            .emergency-marker i {
+                color: #ff3b30;
+            }
+            
+            .specialty-marker i {
+                color: #5856d6;
+            }
+        `;
+        document.head.appendChild(style);
+        
+        // Allow Enter key to submit the form
+        document.querySelector('.search-input').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                findNearbyHospitals();
+            }
+        });
+        
+        // Initialize map
+        initMap();
+    });
+</script>
+{% endblock %} 

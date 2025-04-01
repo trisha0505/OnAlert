@@ -1,0 +1,1144 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OnAlert - {% block title %}{% endblock %}</title>
+    <!-- Logo Color Fix -->
+    <style>
+        html[data-theme="light"] .logo {
+            color: #000000 !important;
+        }
+        html[data-theme="dark"] .logo {
+            color: #ffffff !important;
+        }
+    </style>
+    <!-- Theme Color Meta Tags -->
+    <meta name="theme-color" content="#0a0a0a" data-dark>
+    <meta name="theme-color" content="#F7FAFC" data-light>
+    <!-- Preload fonts for better performance -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700&family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&family=Audiowide&family=Quantico:wght@400;700&family=Syncopate:wght@400;700&family=Teko:wght@400;500;600&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css"/>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        /* Footer Styles */
+        footer {
+            background-color: rgba(10, 10, 10, 0.95);
+            color: #e0e0e0;
+            padding: 20px 0;
+            margin-top: 40px;
+            position: relative;
+            z-index: 100;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        html[data-theme="light"] footer {
+            background-color: rgba(240, 240, 240, 0.95);
+            color: #333;
+            border-top: 1px solid rgba(0, 0, 0, 0.1);
+        }
+        
+        .footer-heading {
+            font-size: 1.2rem;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #ffffff;
+            font-family: 'Orbitron', sans-serif;
+        }
+        
+        html[data-theme="light"] .footer-heading {
+            color: #333;
+        }
+        
+        .footer-text {
+            margin-bottom: 10px;
+            font-size: 0.95rem;
+        }
+        
+        .footer-link {
+            color: #7dc7ff;
+            transition: color 0.3s ease;
+            text-decoration: none;
+        }
+        
+        .footer-link:hover {
+            color: #ffffff;
+            text-decoration: underline;
+        }
+        
+        html[data-theme="light"] .footer-link {
+            color: #0275d8;
+        }
+        
+        html[data-theme="light"] .footer-link:hover {
+            color: #025aa5;
+        }
+        
+        .copyright {
+            font-size: 0.85rem;
+            opacity: 0.8;
+        }
+        
+        .footer-links {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        
+        .footer-links li {
+            margin-bottom: 8px;
+        }
+        
+        .footer-links li:before {
+            content: "→";
+            margin-right: 8px;
+            color: #7dc7ff;
+        }
+        
+        html[data-theme="light"] .footer-links li:before {
+            color: #0275d8;
+        }
+    </style>
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <!-- Theme Transition Overlay -->
+    <div class="theme-transition-overlay"></div>
+
+    <!-- Animated Background -->
+    <div class="background-animation">
+        <div id="matrixRain"></div>
+        <div id="scanLines"></div>
+        <div id="particles"></div>
+        <div id="mouseTrail"></div>
+        <div id="lightThemeEffects"></div>
+    </div>
+
+    <!-- Header -->
+    <header>
+        <div class="container">
+            <div class="d-flex justify-content-between align-items-center">
+                <div class="d-flex align-items-center">
+                    <div class="logo me-4">OnAlert</div>
+                </div>
+                <nav>
+                    <ul class="nav">
+                        {% if current_user.is_authenticated and current_user.is_police %}
+                            <!-- Police Officer Navigation -->
+                            <li class="nav-item">
+                                <a class="nav-link {% if 'dashboard' in request.path %}active{% endif %}" href="{{ url_for('admin_dashboard') }}">
+                                    <i class="fas fa-shield-alt"></i> Dashboard
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link {% if request.path == url_for('data') %}active{% endif %}" href="{{ url_for('data') }}">
+                                    <i class="fas fa-chart-line"></i> Analytics
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link {% if request.path == url_for('police_sos_alerts') %}active{% endif %}" href="{{ url_for('police_sos_alerts') }}">
+                                    <i class="fas fa-exclamation-circle"></i> SOS Alerts
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ url_for('admin_logout') }}">
+                                    <i class="fas fa-sign-out-alt"></i> Logout
+                                </a>
+                            </li>
+                        {% else %}
+                            <!-- Regular User Navigation -->
+                            <li class="nav-item">
+                                <a class="nav-link {% if request.path == url_for('home') %}active{% endif %}" href="{{ url_for('home') }}">
+                                    <i class="fas fa-home"></i> Home
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link {% if request.path == url_for('join_watch') %}active{% endif %}" href="{{ url_for('join_watch') }}">
+                                    <i class="fas fa-shield-alt"></i> Neighborhood Watch
+                                </a>
+                            </li>
+                            {% if current_user.is_authenticated %}
+                                <li class="nav-item">
+                                    <a class="nav-link {% if request.path == url_for('report_crime') %}active{% endif %}" href="{{ url_for('report_crime') }}">
+                                        <i class="fas fa-exclamation-triangle"></i> Report Crime
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link {% if request.path == url_for('sos') %}active{% endif %}" href="{{ url_for('sos') }}">
+                                        <i class="fas fa-heartbeat"></i> SOS Emergency
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" href="{{ url_for('logout') }}">
+                                        <i class="fas fa-sign-out-alt"></i> Logout
+                                    </a>
+                                </li>
+                            {% else %}
+                                <li class="nav-item">
+                                    <a class="nav-link" href="{{ url_for('login') }}">
+                                        <i class="fas fa-sign-in-alt"></i> Login
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" href="{{ url_for('signup') }}">
+                                        <i class="fas fa-user-plus"></i> Sign Up
+                                    </a>
+                                </li>
+                            {% endif %}
+                        {% endif %}
+                    </ul>
+                </nav>
+            </div>
+        </div>
+    </header>
+    
+    <!-- Main Content -->
+    <main class="container py-4">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category if category != 'message' else 'info' }} glass-effect">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <div class="row py-3">
+                <div class="col-md-4 mb-3 mb-md-0">
+                    <h5 class="footer-heading">OnAlert</h5>
+                    <p class="footer-text">Securing Communities Together</p>
+                    <p class="copyright">&copy; 2025 OnAlert</p>
+                </div>
+                <div class="col-md-4 mb-3 mb-md-0">
+                    <h5 class="footer-heading">Contact Us</h5>
+                    <p class="footer-text">
+                        <i class="fas fa-envelope"></i> 
+                        <a href="mailto:onalertpolice@gmail.com" class="footer-link">onalertpolice@gmail.com</a>
+                    </p>
+                    <p class="footer-text">
+                        <i class="fas fa-phone-alt"></i> Emergency: 100
+                    </p>
+                </div>
+                <div class="col-md-4">
+                    <h5 class="footer-heading">Links</h5>
+                    <ul class="footer-links">
+                        <li><a href="{{ url_for('home') }}" class="footer-link">Home</a></li>
+                        {% if not current_user.is_authenticated %}
+                            <li><a href="{{ url_for('login') }}" class="footer-link">Login</a></li>
+                            <li><a href="{{ url_for('signup') }}" class="footer-link">Sign Up</a></li>
+                        {% endif %}
+                        {% if not current_user.is_authenticated or not current_user.is_police %}
+                            <li><a href="{{ url_for('police_login') }}" class="footer-link">Police Portal</a></li>
+                        {% endif %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Theme Switcher -->
+    <button class="theme-switcher" id="themeSwitcher" title="Toggle theme">
+        <i class="fas fa-moon"></i>
+        <span class="theme-label">Dark Mode</span>
+    </button>
+
+    <!-- Scripts -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
+    <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
+    <script>
+        // Matrix Rain Effect
+        document.addEventListener('DOMContentLoaded', function() {
+            const matrixRain = document.getElementById('matrixRain');
+            const scanLines = document.getElementById('scanLines');
+            const particles = document.getElementById('particles');
+            const mouseTrail = document.getElementById('mouseTrail');
+            const lightThemeEffects = document.getElementById('lightThemeEffects');
+            
+            // Mouse trail effect
+            let mouseX = 0;
+            let mouseY = 0;
+            let trail = [];
+            const maxTrailLength = 20;
+            
+            document.addEventListener('mousemove', (e) => {
+                mouseX = e.clientX;
+                mouseY = e.clientY;
+                
+                // Add new point to trail
+                trail.push({ x: mouseX, y: mouseY });
+                if (trail.length > maxTrailLength) {
+                    trail.shift();
+                }
+                
+                // Create trail effect
+                const trailElement = document.createElement('div');
+                trailElement.className = 'mouse-trail-point';
+                trailElement.style.left = `${mouseX}px`;
+                trailElement.style.top = `${mouseY}px`;
+                mouseTrail.appendChild(trailElement);
+                
+                // Remove trail point after animation
+                setTimeout(() => trailElement.remove(), 1000);
+                
+                // Create ripple effect on click
+                if (e.buttons === 1) {
+                    createRipple(e.clientX, e.clientY);
+                }
+            });
+            
+            // Ripple effect
+            function createRipple(x, y) {
+                const ripple = document.createElement('div');
+                ripple.className = 'ripple-effect';
+                ripple.style.left = `${x}px`;
+                ripple.style.top = `${y}px`;
+                document.body.appendChild(ripple);
+                
+                setTimeout(() => ripple.remove(), 1000);
+            }
+            
+            // Light theme special effects
+            function createLightEffect() {
+                const effect = document.createElement('div');
+                effect.className = 'light-theme-effect';
+                effect.style.left = `${Math.random() * 100}%`;
+                effect.style.top = `${Math.random() * 100}%`;
+                lightThemeEffects.appendChild(effect);
+                
+                setTimeout(() => effect.remove(), 3000);
+            }
+            
+            // Create light effects periodically
+            setInterval(createLightEffect, 2000);
+            
+            // Create matrix rain
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            matrixRain.appendChild(canvas);
+            
+            // Set canvas size
+            function resizeCanvas() {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+            }
+            resizeCanvas();
+            window.addEventListener('resize', resizeCanvas);
+            
+            // Matrix characters
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%^&*()';
+            const fontSize = 14;
+            const columns = canvas.width / fontSize;
+            const drops = [];
+            
+            // Initialize drops
+            for (let i = 0; i < columns; i++) {
+                drops[i] = 1;
+            }
+            
+            // Create scanning lines
+            for (let i = 0; i < 5; i++) {
+                const line = document.createElement('div');
+                line.className = 'scan-line';
+                line.style.top = `${i * 20}%`;
+                line.style.animationDelay = `${i * 0.5}s`;
+                scanLines.appendChild(line);
+            }
+            
+            // Create floating particles
+            function createParticle() {
+                const particle = document.createElement('div');
+                particle.className = 'floating-particle';
+                particle.style.left = `${Math.random() * 100}%`;
+                particle.style.top = `${Math.random() * 100}%`;
+                particle.style.animationDuration = `${Math.random() * 20 + 10}s`;
+                particle.style.animationDelay = `${Math.random() * 5}s`;
+                particles.appendChild(particle);
+            
+            // Remove particle after animation
+                setTimeout(() => particle.remove(), 30000);
+        }
+
+        // Create initial particles
+        for (let i = 0; i < 20; i++) {
+            createParticle();
+        }
+
+        // Create new particles periodically
+        setInterval(createParticle, 3000);
+
+            // Update matrix rain based on mouse position
+            function draw() {
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                // Adjust matrix rain based on mouse position
+                const mouseInfluence = Math.min(
+                    Math.sqrt(
+                        Math.pow(mouseX - canvas.width/2, 2) + 
+                        Math.pow(mouseY - canvas.height/2, 2)
+                    ) / Math.sqrt(Math.pow(canvas.width/2, 2) + Math.pow(canvas.height/2, 2)),
+                    1
+                );
+                
+                ctx.fillStyle = `rgba(0, 255, 0, ${0.1 + mouseInfluence * 0.1})`;
+                ctx.font = fontSize + 'px monospace';
+                
+                for (let i = 0; i < drops.length; i++) {
+                    const text = chars[Math.floor(Math.random() * chars.length)];
+                    ctx.fillText(text, i * fontSize, drops[i] * fontSize);
+                    
+                    if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) {
+                        drops[i] = 0;
+                    }
+                    drops[i]++;
+                }
+            }
+            
+            setInterval(draw, 33);
+        });
+
+        // Enhanced Theme Switcher
+        document.addEventListener('DOMContentLoaded', function() {
+            const themeSwitcher = document.getElementById('themeSwitcher');
+            const themeIcon = themeSwitcher.querySelector('i');
+            const themeLabel = themeSwitcher.querySelector('.theme-label');
+            const html = document.documentElement;
+            const transitionOverlay = document.querySelector('.theme-transition-overlay');
+            
+            // Check system preference
+            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)');
+            
+            // Check for saved theme preference or use system preference
+            const savedTheme = localStorage.getItem('theme') || (prefersDark.matches ? 'dark' : 'light');
+            setTheme(savedTheme);
+            
+            // Listen for system theme changes
+            prefersDark.addListener((e) => {
+                if (!localStorage.getItem('theme')) {
+                    setTheme(e.matches ? 'dark' : 'light');
+                }
+            });
+            
+            themeSwitcher.addEventListener('click', function() {
+                const currentTheme = html.getAttribute('data-theme');
+                const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+                
+                // Add transition overlay
+                transitionOverlay.style.display = 'block';
+                transitionOverlay.style.opacity = '1';
+                
+                setTimeout(() => {
+                    setTheme(newTheme);
+                localStorage.setItem('theme', newTheme);
+                    
+                    // Remove transition overlay
+                    setTimeout(() => {
+                        transitionOverlay.style.opacity = '0';
+                        setTimeout(() => {
+                            transitionOverlay.style.display = 'none';
+                        }, 200);
+                    }, 100);
+                }, 50);
+            });
+            
+            function setTheme(theme) {
+                html.setAttribute('data-theme', theme);
+                updateThemeIcon(theme);
+                updateMetaThemeColor(theme);
+            }
+            
+            function updateThemeIcon(theme) {
+                themeIcon.className = theme === 'dark' ? 'fas fa-moon' : 'fas fa-sun';
+                themeLabel.textContent = theme === 'dark' ? 'Dark Mode' : 'Light Mode';
+            }
+            
+            function updateMetaThemeColor(theme) {
+                const darkMeta = document.querySelector('meta[data-dark]');
+                const lightMeta = document.querySelector('meta[data-light]');
+                
+                if (theme === 'dark') {
+                    darkMeta.setAttribute('name', 'theme-color');
+                    lightMeta.setAttribute('name', '');
+                } else {
+                    darkMeta.setAttribute('name', '');
+                    lightMeta.setAttribute('name', 'theme-color');
+                }
+            }
+        });
+    </script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>
+
+<style>
+.theme-transition-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.3);
+    z-index: 9999;
+    display: none;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    pointer-events: none;
+}
+
+.theme-switcher {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    border-radius: 25px;
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.theme-switcher:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+.theme-label {
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+[data-theme="light"] .theme-switcher {
+    background: var(--primary-color);
+    color: var(--white);
+    border-color: var(--primary-color);
+}
+
+.small-links {
+    font-size: 0.8rem;
+    opacity: 0.7;
+    margin-top: 5px;
+}
+
+.small-link {
+    color: inherit;
+    text-decoration: none;
+}
+
+.small-link:hover {
+    text-decoration: underline;
+}
+
+/* Background Animation Styles */
+.background-animation {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -1;
+    overflow: hidden;
+}
+
+#matrixRain {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0.1;
+}
+
+#scanLines {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+}
+
+.scan-line {
+    position: absolute;
+    width: 100%;
+    height: 2px;
+    background: linear-gradient(90deg, 
+        transparent 0%,
+        rgba(0, 255, 140, 0.2) 50%,
+        transparent 100%
+    );
+    animation: scan 8s linear infinite;
+}
+
+#particles {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+}
+
+.floating-particle {
+    position: absolute;
+    width: 2px;
+    height: 2px;
+    background: var(--primary-color);
+    border-radius: 50%;
+    animation: float 20s linear infinite;
+    opacity: 0.5;
+}
+
+@keyframes scan {
+    0% {
+        transform: translateY(-100%);
+    }
+    100% {
+        transform: translateY(100vh);
+    }
+}
+
+@keyframes float {
+    0% {
+        transform: translate(0, 0) rotate(0deg);
+        opacity: 0;
+    }
+    10% {
+        opacity: 0.5;
+    }
+    90% {
+        opacity: 0.5;
+    }
+    100% {
+        transform: translate(var(--move-x, 100px), var(--move-y, -100px)) rotate(360deg);
+        opacity: 0;
+    }
+}
+
+/* Theme-specific background adjustments */
+[data-theme="light"] #matrixRain {
+    opacity: 0.05;
+}
+
+[data-theme="light"] .scan-line {
+    background: linear-gradient(90deg, 
+        transparent 0%,
+        rgba(0, 255, 140, 0.1) 50%,
+        transparent 100%
+    );
+}
+
+[data-theme="light"] .floating-particle {
+    opacity: 0.3;
+}
+
+/* Mouse Trail Effect */
+.mouse-trail-point {
+    position: fixed;
+    width: 4px;
+    height: 4px;
+    background: var(--primary-color);
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 9999;
+    animation: trailFade 1s linear forwards;
+}
+
+.ripple-effect {
+    position: fixed;
+    width: 20px;
+    height: 20px;
+    border: 2px solid var(--primary-color);
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 9998;
+    animation: ripple 1s linear forwards;
+}
+
+/* Light Theme Effects */
+.light-theme-effect {
+    position: absolute;
+    width: 100px;
+    height: 100px;
+    background: radial-gradient(
+        circle,
+        rgba(0, 255, 140, 0.1) 0%,
+        rgba(0, 255, 140, 0) 70%
+    );
+    border-radius: 50%;
+    pointer-events: none;
+    animation: lightFloat 3s ease-in-out forwards;
+}
+
+@keyframes trailFade {
+    0% {
+        transform: scale(1);
+        opacity: 0.8;
+    }
+    100% {
+        transform: scale(0);
+        opacity: 0;
+    }
+}
+
+@keyframes ripple {
+    0% {
+        transform: scale(1);
+        opacity: 0.8;
+    }
+    100% {
+        transform: scale(20);
+        opacity: 0;
+    }
+}
+
+@keyframes lightFloat {
+    0% {
+        transform: translate(0, 0) scale(0.5);
+        opacity: 0;
+    }
+    50% {
+        opacity: 0.5;
+    }
+    100% {
+        transform: translate(var(--move-x, 50px), var(--move-y, -50px)) scale(1.5);
+        opacity: 0;
+    }
+}
+
+/* Theme-specific adjustments */
+[data-theme="light"] .mouse-trail-point {
+    background: var(--primary-color);
+    box-shadow: 0 0 10px var(--primary-color);
+}
+
+[data-theme="light"] .ripple-effect {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 20px var(--primary-color);
+}
+
+[data-theme="light"] .light-theme-effect {
+    background: radial-gradient(
+        circle,
+        rgba(0, 255, 140, 0.15) 0%,
+        rgba(0, 255, 140, 0) 70%
+    );
+}
+
+/* Enhanced particle effects for light theme */
+[data-theme="light"] .floating-particle {
+    box-shadow: 0 0 10px var(--primary-color);
+    animation: lightFloat 20s linear infinite;
+}
+
+/* Smooth transitions for theme changes */
+.background-animation > div {
+    transition: opacity 0.3s ease;
+}
+
+[data-theme="light"] #matrixRain {
+    opacity: 0.03;
+}
+
+[data-theme="light"] .scan-line {
+    background: linear-gradient(90deg, 
+        transparent 0%,
+        rgba(0, 255, 140, 0.08) 50%,
+        transparent 100%
+    );
+}
+
+/* Logo styles with proper theme-specific colors */
+.logo {
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 700;
+    font-size: 1.8rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin: 0;
+    padding: 0;
+    box-shadow: none !important;
+    border: none !important;
+    text-shadow: none !important;
+    animation: none !important;
+    transition: transform 0.3s ease, letter-spacing 0.3s ease;
+    cursor: pointer;
+}
+
+/* Important: Override all previous stylings */
+html[data-theme="dark"] .logo {
+    color: white !important;
+}
+
+html[data-theme="light"] .logo {
+    color: black !important;
+}
+
+.logo:hover {
+    transform: scale(1.05);
+    letter-spacing: 3px;
+}
+
+/* Heading hover effects */
+h1, h2, h3, .section-title {
+    transition: transform 0.3s ease, color 0.3s ease;
+    cursor: default;
+}
+
+h1:hover, h2:hover, h3:hover, .section-title:hover {
+    transform: translateY(-2px);
+    color: #0a84ff;
+}
+
+/* Card title hover effect */
+.resource-title:hover, .crime-type:hover {
+    color: #0a84ff;
+    transform: translateX(5px);
+}
+
+/* Special hover effect for section titles */
+.section-title {
+    position: relative;
+    display: inline-block;
+}
+
+.section-title::after {
+    content: '';
+    position: absolute;
+    width: 100%;
+    height: 2px;
+    bottom: -5px;
+    left: 0;
+    background-color: #0a84ff;
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.3s ease;
+}
+
+.section-title:hover::after {
+    transform: scaleX(1);
+}
+
+/* Light theme adjustments */
+[data-theme="light"] h1:hover, 
+[data-theme="light"] h2:hover, 
+[data-theme="light"] h3:hover, 
+[data-theme="light"] .section-title:hover {
+    color: #6b46c1;
+}
+
+[data-theme="light"] .resource-title:hover,
+[data-theme="light"] .crime-type:hover {
+    color: #6b46c1;
+}
+
+[data-theme="light"] .section-title::after {
+    background-color: #6b46c1;
+}
+
+/* Remove all gradients from buttons in dark theme */
+[data-theme="dark"] .btn-primary {
+    background: #0a84ff;
+    border-color: #0a84ff;
+    color: #ffffff;
+    text-shadow: none;
+    box-shadow: none;
+}
+
+[data-theme="dark"] .btn-primary:hover {
+    background: #0055d4;
+    border-color: #0055d4;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(10, 132, 255, 0.3);
+}
+
+[data-theme="dark"] .btn-secondary {
+    background: #3a3a3c;
+    border-color: #3a3a3c;
+    color: #ffffff;
+    text-shadow: none;
+    box-shadow: none;
+}
+
+[data-theme="dark"] .btn-secondary:hover {
+    background: #2c2c2e;
+    border-color: #2c2c2e;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+}
+
+/* Remove gradients from specific buttons */
+[data-theme="dark"] .download-btn {
+    background: #0a84ff;
+    color: #ffffff;
+    border: none;
+    text-shadow: none;
+    box-shadow: none;
+}
+
+[data-theme="dark"] .download-btn:hover {
+    background: #0055d4;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(10, 132, 255, 0.3);
+}
+
+[data-theme="dark"] .resource-button {
+    background: #0a84ff;
+    color: white;
+    text-shadow: none;
+    box-shadow: none;
+    border: none;
+}
+
+[data-theme="dark"] .resource-button:hover {
+    background: #0055d4;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(10, 132, 255, 0.3);
+}
+
+[data-theme="dark"] .call-button {
+    background: #0a84ff;
+    color: white;
+    text-shadow: none;
+    box-shadow: none;
+    border: none;
+}
+
+[data-theme="dark"] .call-button:hover {
+    background: #0055d4;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(10, 132, 255, 0.3);
+}
+
+/* Theme switcher in dark theme - remove gradient */
+[data-theme="dark"] .theme-switcher {
+    background: #3a3a3c;
+    border-color: #3a3a3c;
+    color: #ffffff;
+    text-shadow: none;
+    box-shadow: none;
+}
+
+[data-theme="dark"] .theme-switcher:hover {
+    background: #2c2c2e;
+    border-color: #2c2c2e;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+}
+
+/* Common button and link styles */
+.btn, .action-link, .download-link {
+    border-radius: 6px;
+    padding: 0.5rem 1.25rem;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-size: 0.9rem;
+    position: relative;
+    overflow: hidden;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+/* Dark theme link and button styles */
+[data-theme="dark"] .action-link,
+[data-theme="dark"] .download-link {
+    color: #0a84ff;
+    background: rgba(10, 132, 255, 0.1);
+    border: 1px solid rgba(10, 132, 255, 0.2);
+    padding: 0.5rem 1.25rem;
+    border-radius: 6px;
+    transition: all 0.3s ease;
+}
+
+[data-theme="dark"] .action-link:hover,
+[data-theme="dark"] .download-link:hover {
+    background: rgba(10, 132, 255, 0.2);
+    border-color: rgba(10, 132, 255, 0.3);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(10, 132, 255, 0.2);
+    color: #3a9fff;
+}
+
+[data-theme="dark"] .action-link::after,
+[data-theme="dark"] .download-link::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, #0a84ff, transparent);
+    transform: scaleX(0);
+    transition: transform 0.3s ease;
+}
+
+[data-theme="dark"] .action-link:hover::after,
+[data-theme="dark"] .download-link:hover::after {
+    transform: scaleX(1);
+}
+
+/* View Full Incident Report link specific styles */
+[data-theme="dark"] .incident-link {
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    padding: 0.5rem 1.25rem;
+    border-radius: 6px;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    text-decoration: none;
+}
+
+[data-theme="dark"] .incident-link:hover {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 255, 255, 0.3);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(255, 255, 255, 0.1);
+    color: #ffffff;
+}
+
+[data-theme="dark"] .incident-link i {
+    transition: transform 0.3s ease;
+}
+
+[data-theme="dark"] .incident-link:hover i {
+    transform: translateX(4px);
+}
+
+/* Card hover effects in dark theme */
+[data-theme="dark"] .card {
+    transition: all 0.3s ease;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="dark"] .card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.15);
+}
+
+/* Emergency numbers download button */
+[data-theme="dark"] .download-btn i {
+    margin-left: 0.5rem;
+    transition: transform 0.3s ease;
+}
+
+[data-theme="dark"] .download-btn:hover i {
+    transform: translateY(2px);
+}
+
+/* Target the specific resource-button in home.html */
+[data-theme="dark"] .resource-button i {
+    transition: transform 0.3s ease;
+}
+
+[data-theme="dark"] .resource-button:hover i {
+    transform: translateX(2px);
+}
+
+/* Target the specific view-report link in home.html */
+[data-theme="dark"] .view-report {
+    display: inline-flex;
+    align-items: center;
+    color: #0a84ff;
+    text-decoration: none;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    margin-top: 1rem;
+    gap: 0.5rem;
+}
+
+[data-theme="dark"] .view-report:hover {
+    color: #3a9fff;
+    transform: translateX(5px);
+}
+
+/* Target card elements */
+[data-theme="dark"] .resource-card,
+[data-theme="dark"] .crime-card,
+[data-theme="dark"] .emergency-card {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    transition: all 0.3s ease;
+}
+
+[data-theme="dark"] .resource-card:hover,
+[data-theme="dark"] .crime-card:hover,
+[data-theme="dark"] .emergency-card:hover {
+    transform: translateY(-5px);
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.2);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+}
+
+/* Fix specific issues with the download section */
+[data-theme="dark"] .download-section {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 1.5rem;
+    border-radius: 8px;
+    margin-top: 2rem;
+}
+
+[data-theme="dark"] .download-buttons {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-top: 1rem;
+}
+
+/* Fix for icons in buttons */
+[data-theme="dark"] .download-btn i,
+[data-theme="dark"] .resource-button i,
+[data-theme="dark"] .call-button i {
+    transition: transform 0.3s ease;
+}
+
+[data-theme="dark"] .download-btn:hover i {
+    transform: translateY(2px);
+}
+
+[data-theme="dark"] .resource-button:hover i,
+[data-theme="dark"] .call-button:hover i {
+    transform: translateX(2px);
+}
+
+/* Nav link active states */
+.nav-link.active {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: #fff !important;
+    border-bottom: 2px solid var(--primary-violet, #6f42c1);
+}
+
+html[data-theme="light"] .nav-link.active {
+    background-color: rgba(0, 0, 0, 0.05);
+    color: #000 !important;
+    border-bottom: 2px solid var(--primary-violet, #6f42c1);
+}
+</style> 

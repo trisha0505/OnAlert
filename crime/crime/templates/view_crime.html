@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+
+{% block title %}View Crime Report #{{ crime.id }}{% endblock %}
+
+{% block content %}
+<section class="view-crime">
+    <div class="container mt-4">
+        <div class="row">
+            <div class="col-md-10 offset-md-1">
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb glass-effect p-3">
+                        {% if current_user.is_admin %}
+                        <li class="breadcrumb-item"><a href="{{ url_for('admin_dashboard') }}">Admin Dashboard</a></li>
+                        {% else %}
+                        <li class="breadcrumb-item"><a href="{{ url_for('reports') }}">Reports</a></li>
+                        {% endif %}
+                        <li class="breadcrumb-item active" aria-current="page">Crime Report #{{ crime.id }}</li>
+                    </ol>
+                </nav>
+
+                <div class="card glass-effect mb-4">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h3 class="mb-0">
+                            <i class="fas fa-file-alt me-2"></i>{{ crime.title }}
+                        </h3>
+                        {% if current_user.is_admin %}
+                        <a href="{{ url_for('update_report', report_id=crime.id) }}" class="btn btn-primary glass-effect">
+                            <i class="fas fa-edit me-1"></i>Update Report
+                        </a>
+                        {% endif %}
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h5><i class="fas fa-info-circle me-2"></i>Report Details</h5>
+                                <table class="table">
+                                    <tr>
+                                        <th>Status:</th>
+                                        <td>
+                                            <span class="badge glass-effect {% if crime.status == 'pending' %}bg-warning{% elif crime.status == 'investigating' %}bg-info{% elif crime.status == 'resolved' %}bg-success{% else %}bg-secondary{% endif %}">
+                                                {{ crime.status|upper }}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <th>Reported By:</th>
+                                        <td>{{ crime.author.username }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Date:</th>
+                                        <td>{{ crime.timestamp.strftime('%Y-%m-%d %H:%M') }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Location:</th>
+                                        <td>{{ crime.location }}</td>
+                                    </tr>
+                                </table>
+                            </div>
+                            <div class="col-md-6">
+                                <div id="reportMap" style="height: 300px;" class="glass-effect"></div>
+                            </div>
+                        </div>
+
+                        <div class="mt-4">
+                            <h5><i class="fas fa-align-left me-2"></i>Description</h5>
+                            <p class="glass-effect p-3">{{ crime.description }}</p>
+                        </div>
+
+                        {% if crime.notes and (current_user.is_admin or current_user.id == crime.user_id) %}
+                        <div class="mt-4">
+                            <h5><i class="fas fa-clipboard me-2"></i>Admin Notes</h5>
+                            <p class="glass-effect p-3">{{ crime.notes }}</p>
+                        </div>
+                        {% endif %}
+
+                        {% if crime.suspect_description %}
+                        <div class="mt-4">
+                            <h5><i class="fas fa-user me-2"></i>Suspect Description</h5>
+                            <p class="glass-effect p-3">{{ crime.suspect_description }}</p>
+                        </div>
+                        {% endif %}
+
+                        {% if (crime.suspect_sketch or crime.evidence_file) and current_user.is_police %}
+                        <div class="mt-4">
+                            <h5><i class="fas fa-user-secret me-2"></i>Suspect Sketches</h5>
+                            <div class="row mb-3">
+                                {% if crime.suspect_sketch %}
+                                <div class="col-md-6">
+                                    <h6>AI-Generated Sketch</h6>
+                                    <img src="{{ url_for('download_evidence', report_id=crime.id, type='sketch', download='false') }}" 
+                                         class="img-fluid" alt="AI-Generated Suspect Sketch"
+                                         style="max-width: 512px; border: 1px solid #ccc; border-radius: 4px;">
+                                </div>
+                                {% endif %}
+                                {% if crime.evidence_file and crime.evidence_file.lower().endswith(('.png', '.jpg', '.jpeg', '.gif')) %}
+                                <div class="col-md-6">
+                                    <h6>Reported Sketch/Photo</h6>
+                                    <img src="{{ url_for('download_evidence', report_id=crime.id, download='false') }}" 
+                                         class="img-fluid" alt="Reported Suspect Sketch"
+                                         style="max-width: 512px; border: 1px solid #ccc; border-radius: 4px;">
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        {% if crime.evidence_file and not crime.evidence_file.lower().endswith(('.png', '.jpg', '.jpeg', '.gif')) %}
+                        <div class="mt-4">
+                            <h5><i class="fas fa-file-alt me-2"></i>Evidence</h5>
+                            <p>
+                                <a href="{{ url_for('download_evidence', report_id=crime.id, download='true') }}" 
+                                   class="btn btn-primary" target="_blank">
+                                    View Evidence
+                                </a>
+                            </p>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+{% block extra_js %}
+<script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        var map = L.map('reportMap').setView([{{ crime.latitude }}, {{ crime.longitude }}], 13);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+        L.marker([{{ crime.latitude }}, {{ crime.longitude }}]).addTo(map);
+    });
+</script>
+{% endblock %}
+
+{% endblock %} 

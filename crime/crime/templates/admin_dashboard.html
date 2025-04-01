@@ -1,0 +1,1180 @@
+{% extends "base.html" %}
+
+{% block title %}Police Dashboard{% endblock %}
+
+{% block extra_css %}
+<!-- Add Leaflet CSS -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
+<link rel="stylesheet" href="https://cdn.datatables.net/1.10.25/css/dataTables.bootstrap5.min.css">
+<style>
+    /* Custom styling for the map container to ensure it displays properly */
+    #crimeMap {
+        height: 600px;
+        width: 100%;
+        position: relative;
+        z-index: 1;
+        background-color: #333;
+        border-radius: 8px;
+    }
+    
+    /* Make sure map tiles are visible in dark mode */
+    .leaflet-tile {
+        filter: brightness(0.8) invert(1) contrast(1.5) hue-rotate(200deg) saturate(0.3) brightness(0.7);
+    }
+
+    [data-theme="light"] .leaflet-tile {
+        filter: none;
+    }
+    
+    .card {
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    .card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+    }
+    .marker-cluster {
+        background-color: rgba(0, 60, 136, 0.6);
+        border-radius: 50%;
+        color: white;
+        text-align: center;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        border: 2px solid rgba(255, 255, 255, 0.5);
+    }
+    .marker-cluster div {
+        width: 34px;
+        height: 34px;
+        margin: 3px;
+        border-radius: 50%;
+        background-color: rgba(0, 85, 170, 0.8);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .marker-cluster span {
+        color: white;
+    }
+    .marker-cluster-small {
+        background-color: rgba(0, 140, 200, 0.6);
+    }
+    .marker-cluster-medium {
+        background-color: rgba(0, 100, 180, 0.6);
+    }
+    .marker-cluster-large {
+        background-color: rgba(0, 60, 120, 0.6);
+    }
+    .custom-popup {
+        font-family: var(--font-sans);
+    }
+    .crime-popup {
+        min-width: 200px;
+    }
+    .crime-popup h6 {
+        margin-bottom: 10px;
+    }
+    .crime-popup p {
+        margin-bottom: 5px;
+    }
+    /* Logout button styles */
+    .logout-btn {
+        background-color: #dc3545 !important;
+        color: white !important;
+        border: 1px solid rgba(255, 255, 255, 0.2) !important;
+        font-weight: bold;
+        text-shadow: 0 1px 1px rgba(0, 0, 0, 0.2);
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    }
+    
+    .logout-btn:hover {
+        background-color: #bd2130 !important;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    }
+    
+    html[data-theme="light"] .logout-btn {
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+        border: 1px solid rgba(0, 0, 0, 0.2) !important;
+    }
+    
+    /* Fix for navigation bar highlighting */
+    .dashboard-active {
+        background-color: rgba(255, 255, 255, 0.1);
+        color: #fff !important;
+        border-bottom: 2px solid var(--primary-violet);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Add this to highlight the Dashboard nav item -->
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Highlight the Dashboard nav item for police portal
+        const dashboardNav = document.querySelector('.nav-link[href*="dashboard"]');
+        if (dashboardNav) {
+            dashboardNav.classList.add('dashboard-active');
+        }
+    });
+</script>
+
+<section class="admin-dashboard">
+    <div class="container-fluid mt-4">
+        <div class="row mb-4">
+            <div class="col-md-12">
+                <div class="card glass-effect">
+                    <div class="card-body d-flex justify-content-between align-items-center">
+                        <h2 class="card-title mb-0">
+                            <i class="fas fa-shield-alt me-2"></i>Police Dashboard
+                        </h2>
+                        <div>
+                            <a href="{{ url_for('home') }}" class="btn btn-outline-primary glass-effect me-2">
+                                <i class="fas fa-home me-1"></i>Home
+                            </a>
+                            <a href="{{ url_for('add_community_meeting') }}" class="btn btn-outline-info glass-effect me-2">
+                                <i class="fas fa-calendar-plus me-1"></i>Add Meeting
+                            </a>
+                            <a href="{{ url_for('admin_logout') }}" class="btn btn-danger glass-effect logout-btn">
+                                <i class="fas fa-sign-out-alt me-1"></i>Logout
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert glass-effect">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <!-- Police Officer Info -->
+        <div class="row mb-4">
+            <div class="col-md-12">
+                <div class="card glass-effect">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h5 class="mb-1">Officer: {{ current_user.username }}</h5>
+                                <p class="mb-0">Badge Number: {{ current_user.badge_number }}</p>
+                            </div>
+                            <div class="text-end">
+                                <h5 class="mb-1">Department: {{ current_user.department }}</h5>
+                                <p class="mb-0">Rank: {{ current_user.rank }}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Unanswered Enquiries Section -->
+        <div class="row mb-4">
+            <div class="col-md-12">
+                <div class="card glass-effect">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0"><i class="fas fa-question-circle me-2"></i>Unanswered Enquiries</h5>
+                    </div>
+                    <div class="card-body">
+                        <!-- Always show the table -->
+                        <div class="table-responsive">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Report</th>
+                                        <th>User</th>
+                                        <th>Date</th>
+                                        <th>Message</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% if unanswered_enquiries and unanswered_enquiries|length > 0 %}
+                                        {% for enquiry in unanswered_enquiries %}
+                                        <tr>
+                                            <td>
+                                                <a href="{{ url_for('view_crime', crime_id=enquiry.report_id) }}">
+                                                    #{{ enquiry.report_id }}: {{ enquiry.report.title if enquiry.report else 'Unknown' }}
+                                                </a>
+                                            </td>
+                                            <td>{{ enquiry.user.username if enquiry.user else 'Unknown' }}</td>
+                                            <td>{{ enquiry.created_at.strftime('%d %b %Y - %H:%M') }}</td>
+                                            <td class="text-truncate" style="max-width: 200px;">{{ enquiry.message }}</td>
+                                            <td>
+                                                {% if enquiry.is_responded %}
+                                                <span class="badge bg-success">Answered</span>
+                                                {% else %}
+                                                <span class="badge bg-warning">Pending</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                <a href="{{ url_for('view_enquiries', report_id=enquiry.report_id) }}" class="btn btn-sm btn-primary glass-effect">
+                                                    <i class="fas fa-{% if enquiry.is_responded %}eye{% else %}reply{% endif %} me-1"></i>
+                                                    {% if enquiry.is_responded %}View{% else %}Respond{% endif %}
+                                                </a>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    {% else %}
+                                        <tr>
+                                            <td colspan="5" class="text-center py-3">
+                                                <i class="fas fa-inbox fa-2x mb-2 text-muted"></i>
+                                                <p class="mb-0">No unanswered enquiries at this time.</p>
+                                            </td>
+                                        </tr>
+                                    {% endif %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Locality Selection -->
+        <div class="row mb-4">
+            <div class="col-md-12">
+                <div class="card glass-effect">
+                    <div class="card-body">
+                        <h5 class="card-title mb-3">Filter Reports</h5>
+                        <form method="POST" action="{{ url_for('admin_dashboard') }}" class="row g-3">
+                            <div class="col-md-4">
+                                <label for="locality" class="form-label">Jurisdiction</label>
+                                <select class="form-select glass-effect" id="locality" name="locality">
+                                    <option value="">All Localities</option>
+                                    {% for locality in localities %}
+                                    <option value="{{ locality }}" {% if selected_locality == locality %}selected{% endif %}>
+                                        {{ locality }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="status" class="form-label">Status</label>
+                                <select class="form-select glass-effect" id="status" name="status">
+                                    <option value="all" {% if selected_status == 'all' %}selected{% endif %}>All Status</option>
+                                    <option value="pending" {% if selected_status == 'pending' %}selected{% endif %}>Submitted</option>
+                                    <option value="under_review" {% if selected_status == 'under_review' %}selected{% endif %}>Under Review</option>
+                                    <option value="investigating" {% if selected_status == 'investigating' %}selected{% endif %}>Investigating</option>
+                                    <option value="in_progress" {% if selected_status == 'in_progress' %}selected{% endif %}>In Progress</option>
+                                    <option value="resolved" {% if selected_status == 'resolved' %}selected{% endif %}>Resolved</option>
+                                </select>
+                            </div>
+                            <div class="col-md-2 d-flex align-items-end">
+                                <button type="submit" class="btn btn-primary glass-effect w-100">
+                                    <i class="fas fa-filter me-1"></i>Filter
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Stats Summary Row -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card glass-effect text-white">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="card-title">Total Reports</h6>
+                                <h2 class="mb-0">{{ reports|length }}</h2>
+                            </div>
+                            <i class="fas fa-clipboard-list fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card glass-effect text-white">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="card-title">Pending</h6>
+                                <h2 class="mb-0">{{ reports|selectattr('status', 'equalto', 'pending')|list|length }}</h2>
+                            </div>
+                            <i class="fas fa-clock fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card glass-effect text-white">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="card-title">Investigating</h6>
+                                <h2 class="mb-0">{{ reports|selectattr('status', 'equalto', 'investigating')|list|length }}</h2>
+                            </div>
+                            <i class="fas fa-search fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card glass-effect text-white">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="card-title">Resolved</h6>
+                                <h2 class="mb-0">{{ reports|selectattr('status', 'equalto', 'resolved')|list|length }}</h2>
+                            </div>
+                            <i class="fas fa-check-circle fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Crime Map -->
+        <div class="row mb-4">
+            <div class="col-md-12">
+                <div class="card glass-effect">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h4 class="mb-0"><i class="fas fa-map-marked-alt me-2"></i>Crime Map</h4>
+                        <div>
+                            <a href="{{ url_for('fullmap') }}" class="btn btn-sm btn-outline-success me-3">
+                                <i class="fas fa-expand"></i> Fullscreen Map
+                            </a>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input filter-status" type="checkbox" value="pending" id="filterPending" checked>
+                                <label class="form-check-label" for="filterPending">
+                                    <i class="fas fa-circle text-warning me-1"></i>Pending
+                                </label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input filter-status" type="checkbox" value="investigating" id="filterInvestigating" checked>
+                                <label class="form-check-label" for="filterInvestigating">
+                                    <i class="fas fa-circle text-info me-1"></i>Investigating
+                                </label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input filter-status" type="checkbox" value="resolved" id="filterResolved" checked>
+                                <label class="form-check-label" for="filterResolved">
+                                    <i class="fas fa-circle text-success me-1"></i>Resolved
+                                </label>
+                            </div>
+                            <div class="btn-group ms-3">
+                            <button class="btn btn-sm btn-outline-primary active" data-view="heat">Heat Map</button>
+                            <button class="btn btn-sm btn-outline-primary" data-view="markers">Markers</button>
+                            <button class="btn btn-sm btn-outline-primary" id="locateMe">
+                                <i class="fas fa-location-arrow"></i> My Location
+                            </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-body p-0">
+                        <div id="crimeMap" style="height: 600px; width: 100%; position: relative; z-index: 1;"></div>
+                        <div class="p-3">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div class="legend">
+                                    <span class="me-3"><i class="fas fa-circle text-warning"></i> Pending</span>
+                                    <span class="me-3"><i class="fas fa-circle text-info"></i> Investigating</span>
+                                    <span class="me-3"><i class="fas fa-circle text-success"></i> Resolved</span>
+                                    <span><i class="fas fa-circle text-secondary"></i> Other</span>
+                                </div>
+                                <div class="heat-legend" style="display: none;">
+                                    <span class="me-3"><i class="fas fa-fire text-danger"></i> High Density</span>
+                                    <span class="me-3"><i class="fas fa-fire text-warning"></i> Medium Density</span>
+                                    <span><i class="fas fa-fire text-info"></i> Low Density</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Reports Table -->
+        <div class="card glass-effect mb-4">
+            <div class="card-header">
+                <h4 class="mb-0"><i class="fas fa-table me-2"></i>Crime Reports</h4>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover" id="reportsTable">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Title</th>
+                                <th>Location</th>
+                                <th>Reported By</th>
+                                <th>Date</th>
+                                <th>Status</th>
+                                <th>Evidence</th>
+                                <th>Verification</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for report in reports %}
+                            <tr>
+                                <td>{{ report.id }}</td>
+                                <td>{{ report.title }}</td>
+                                <td>{{ report.location }}</td>
+                                <td>{{ report.author.username }}</td>
+                                <td>{{ report.timestamp.strftime('%Y-%m-%d %H:%M') }}</td>
+                                <td>
+                                    <span class="badge glass-effect {% if report.status == 'pending' %}bg-warning{% elif report.status == 'investigating' %}bg-info{% elif report.status == 'resolved' %}bg-success{% else %}bg-secondary{% endif %}">
+                                        {{ report.status|upper }}
+                                    </span>
+                                </td>
+                                <td>
+                                    {% if report.evidence_file %}
+                                        {% if report.evidence_file.lower().endswith(('.png', '.jpg', '.jpeg', '.gif')) %}
+                                            <div class="evidence-preview">
+                                                <!-- Replace the direct image with an icon -->
+                                                <i class="fas fa-image text-primary" style="font-size: 1.5rem;" 
+                                                   onclick="openImagePreview('{{ url_for('download_evidence', report_id=report.id, download='false') }}')"></i>
+                                                <a href="{{ url_for('download_evidence', report_id=report.id, download='true') }}" 
+                                                   class="btn btn-sm btn-info glass-effect ms-2">
+                                                    <i class="fas fa-download"></i> Download
+                                                </a>
+                                            </div>
+                                        {% else %}
+                                            <div class="evidence-file">
+                                                <i class="fas fa-file-alt"></i>
+                                                <span class="ms-2">{{ report.evidence_file }}</span>
+                                                <a href="{{ url_for('download_evidence', report_id=report.id, download='true') }}" 
+                                                   class="btn btn-sm btn-info glass-effect ms-2">
+                                                    <i class="fas fa-download"></i> Download
+                                                </a>
+                                            </div>
+                                        {% endif %}
+                                        
+                                        <!-- Remove the modal for image preview -->
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if not report.is_verified %}
+                                        <form method="POST" action="{{ url_for('verify_report', report_id=report.id) }}" class="d-inline verification-form">
+                                            <div class="btn-group">
+                                                <button type="submit" name="action" value="verify" class="btn btn-success btn-sm">
+                                                    <i class="fas fa-check"></i> Verify
+                                                </button>
+                                                <button type="submit" name="action" value="mark_fake" class="btn btn-danger btn-sm">
+                                                    <i class="fas fa-times"></i> Mark Fake
+                                                </button>
+                                            </div>
+                                            <textarea name="notes" class="form-control form-control-sm mt-2" placeholder="Add verification notes..." required></textarea>
+                                        </form>
+                                    {% else %}
+                                        <span class="badge {% if report.verification_status == 'verified' %}bg-success{% else %}bg-danger{% endif %}">
+                                            {{ report.verification_status|upper }}
+                                        </span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="btn-group">
+                                        <a href="{{ url_for('view_crime', crime_id=report.id) }}" class="btn btn-info btn-sm">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                        <a href="{{ url_for('update_report', report_id=report.id) }}" class="btn btn-primary btn-sm">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<!-- Add Leaflet JS libraries -->
+<script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
+<script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
+<script src="https://cdn.datatables.net/1.10.25/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.10.25/js/dataTables.bootstrap5.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Make sure map container is visible
+        const mapContainer = document.getElementById('crimeMap');
+        if (mapContainer) {
+            mapContainer.style.display = 'block';
+        }
+        
+        // Handle verification form submission
+        const forms = document.querySelectorAll('.verification-form');
+        forms.forEach(form => {
+            form.addEventListener('submit', function(e) {
+                const notes = this.querySelector('textarea[name="notes"]');
+                if (!notes.value.trim()) {
+                    e.preventDefault();
+                    alert('Please add verification notes before proceeding.');
+                }
+            });
+        });
+
+        // Initialize DataTable
+        $('#reportsTable').DataTable({
+            order: [[0, 'desc']]
+        });
+
+        // Initialize the map
+        var map = L.map('crimeMap', {
+            zoomControl: false,
+            attributionControl: false
+        }).setView([20.5937, 78.9629], 5);
+
+        // Add zoom control to top right
+        L.control.zoom({
+            position: 'topright'
+        }).addTo(map);
+
+        // Add scale control
+        L.control.scale({
+            position: 'bottomright'
+        }).addTo(map);
+
+        // Add tile layer
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors',
+            className: 'dark-map'
+        }).addTo(map);
+
+        // Initialize marker cluster group
+        var markers = L.markerClusterGroup({
+            maxClusterRadius: 60,
+            spiderfyOnMaxZoom: true,
+            showCoverageOnHover: true,
+            zoomToBoundsOnClick: true,
+            chunkedLoading: true,
+            iconCreateFunction: function(cluster) {
+                var count = cluster.getChildCount();
+                var size = count < 10 ? 'small' : count < 50 ? 'medium' : 'large';
+                return L.divIcon({
+                    html: '<div><span>' + count + '</span></div>',
+                    className: 'marker-cluster marker-cluster-' + size,
+                    iconSize: L.point(40, 40)
+                });
+            }
+        });
+
+        var heatLayer = null;
+        var userMarker = null;
+        var userCircle = null;
+        var allMarkers = {};
+        var filteredHeatData = [];
+
+        var mapData = [];
+        var heatData = [];
+
+        // Load existing reports
+        {% if reports %}
+            {% for report in reports %}
+                // Store report data
+                var reportData = {
+                    id: {{ report.id }},
+                    lat: {{ report.latitude }},
+                    lng: {{ report.longitude }},
+                    status: "{{ report.status }}",
+                    title: "{{ report.title }}",
+                    location: "{{ report.location }}",
+                    timestamp: "{{ report.timestamp.strftime('%Y-%m-%d %H:%M') }}"
+                };
+                
+                mapData.push(reportData);
+                
+                // Add to heat data array with intensity based on status
+                var intensity = {% if report.status == "pending" %}0.3{% elif report.status == "investigating" %}0.6{% elif report.status == "resolved" %}0.1{% else %}0.2{% endif %};
+                heatData.push([{{ report.latitude }}, {{ report.longitude }}, intensity]);
+            {% endfor %}
+        {% else %}
+            console.log("No reports available.");
+        {% endif %}
+
+        // Additional sample data points for major cities
+        var additionalPoints = [
+            // Major cities in Maharashtra
+            {
+                lat: 18.5204, 
+                lng: 73.8567, 
+                title: "Armed Robbery at Kotak Mahindra Bank", 
+                location: "Shivaji Nagar, Pune", 
+                status: "pending",
+                description: "Two armed individuals wearing masks entered the bank at approximately 2:15 PM and threatened staff with firearms. They took approximately Rs. 3,50,000 in cash and fled on a black motorcycle. CCTV footage shows suspects wearing helmets. One suspect approximately 5'10\" tall, medium build.",
+                hasEvidence: true,
+                evidenceType: "image",
+                reportDate: "2023-07-15 14:30",
+                reportedBy: "Pune Police"
+            },
+            {
+                lat: 19.0760, 
+                lng: 72.8777, 
+                title: "Vehicle Theft - White Toyota Innova", 
+                location: "Dadar West, Mumbai", 
+                status: "investigating",
+                description: "Vehicle registration MH02-BJ-7291 was stolen from outside Dadar Station between 10:00 PM and 6:30 AM. Owner reports the car was locked and secured. No witnesses have come forward. Vehicle has distinctive scratch on rear bumper and a 'Baby on Board' sticker.",
+                hasEvidence: true,
+                evidenceType: "image",
+                reportDate: "2023-06-28 08:15",
+                reportedBy: "Mumbai Police"
+            },
+            {
+                lat: 21.1458, 
+                lng: 79.0882, 
+                title: "Home Invasion and Assault", 
+                location: "Sitabuldi, Nagpur", 
+                status: "resolved",
+                description: "Victim reports three individuals forced entry into residence at approximately 1:20 AM. Victims were threatened and assaulted. Jewelry valued at Rs. 1,25,000 and cash of Rs. 45,000 were stolen. Victims treated at local hospital for minor injuries. Suspects identified through neighborhood CCTV.",
+                hasEvidence: true,
+                evidenceType: "file",
+                reportDate: "2023-04-03 04:45",
+                reportedBy: "Nagpur Police"
+            },
+            
+            // Major cities in Karnataka
+            {
+                lat: 12.9716, 
+                lng: 77.5946, 
+                title: "Corporate Data Breach at TechSolutions Ltd", 
+                location: "MG Road, Bangalore", 
+                status: "investigating",
+                description: "Company reports unauthorized access to their customer database occurred between March 25-28. Approximately 15,000 customer records including names, emails, and partial payment information were compromised. Ransom demand received via anonymous email. IT security team has isolated affected systems.",
+                hasEvidence: true,
+                evidenceType: "file",
+                reportDate: "2023-06-10 11:20",
+                reportedBy: "Bangalore Police"
+            },
+            {
+                lat: 15.3647, 
+                lng: 75.1240, 
+                title: "Jewelry Store Break-in", 
+                location: "Vidyanagar, Hubli", 
+                status: "pending",
+                description: "Break-in occurred at Mahalaxmi Jewelers during nighttime hours. Glass display cases shattered. Estimated loss of 350g gold jewelry valued at approximately Rs. 22,50,000. Alarm system was disabled prior to entry. Store owner reports suspicious individual scoping the premises day before.",
+                hasEvidence: true,
+                evidenceType: "image",
+                reportDate: "2023-07-18 07:30",
+                reportedBy: "Hubli Police"
+            },
+            {
+                lat: 12.3052, 
+                lng: 76.6552, 
+                title: "Violent Mobile Phone Snatching", 
+                location: "Mysore Palace Area", 
+                status: "resolved",
+                description: "Female tourist (age 28) was approached by two men on a motorcycle who forcibly grabbed her iPhone 14 Pro and shoved her to the ground. Victim sustained minor injuries. Incident occurred in daylight in front of multiple witnesses. Local street camera captured incident.",
+                hasEvidence: true,
+                evidenceType: "image",
+                reportDate: "2023-03-25 16:45",
+                reportedBy: "Mysore Police"
+            },
+            
+            // Major cities in Tamil Nadu
+            {
+                lat: 13.0827, 
+                lng: 80.2707, 
+                title: "Organized Credit Card Skimming Operation", 
+                location: "Chennai Central Station", 
+                status: "investigating",
+                description: "Multiple cases of credit card fraud reported from individuals who recently used the ATMs near Chennai Central. Investigation reveals sophisticated skimming devices attached to three different ATMs. Estimated 45+ victims with fraudulent transactions totaling over Rs. 15,00,000.",
+                hasEvidence: true,
+                evidenceType: "image",
+                reportDate: "2023-06-02 13:10",
+                reportedBy: "Chennai Police"
+            },
+            {
+                lat: 11.0168, 
+                lng: 76.9558, 
+                title: "Aggravated Assault at City Nightclub", 
+                location: "Race Course Road, Coimbatore", 
+                status: "pending",
+                description: "Victim (male, 32) was severely beaten by a group of 4-5 individuals after a verbal altercation at Pulse Nightclub. Victim hospitalized with facial fractures and contusions. Primary suspect identified as a repeat offender with prior assault charges. Bartender and two patrons provided witness statements.",
+                hasEvidence: true,
+                evidenceType: "file",
+                reportDate: "2023-07-16 02:35",
+                reportedBy: "Coimbatore Police"
+            },
+            {
+                lat: 9.9252, 
+                lng: 78.1198, 
+                title: "Temple Vandalism and Theft of Ancient Artifacts", 
+                location: "Meenakshi Temple Area, Madurai", 
+                status: "resolved",
+                description: "Historic temple damaged during overnight hours. Ancient bronze statues dating back to 12th century, valued at over Rs. 50,00,000, were stolen. Evidence suggests perpetrators had detailed knowledge of temple layout and security systems. Cultural heritage experts assisting investigation.",
+                hasEvidence: true,
+                evidenceType: "image",
+                reportDate: "2023-02-12 03:20",
+                reportedBy: "Madurai Police"
+            },
+            
+            // Major cities in Telangana/AP
+            {
+                lat: 17.3850, 
+                lng: 78.4867, 
+                title: "Elaborate Identity Theft Network Uncovered", 
+                location: "Banjara Hills, Hyderabad", 
+                status: "investigating",
+                description: "Investigation revealed organized crime network stealing personal information from job applicants at fake recruitment firm. Over 200 victims identified. Group created fraudulent loan applications and credit accounts. Physical documents recovered in raid including forged government IDs and banking records.",
+                hasEvidence: true,
+                evidenceType: "file",
+                reportDate: "2023-05-17 09:50",
+                reportedBy: "Hyderabad Police"
+            },
+            {
+                lat: 16.5062, 
+                lng: 80.6480, 
+                title: "Residential Burglary During Festival", 
+                location: "Christurajupuram, Vijayawada", 
+                status: "pending",
+                description: "Family returned from three-day festival to find home ransacked. Entry gained through forced rear window. Missing items include 250g gold jewelry, electronics, and Rs. 1,75,000 cash. Neighboring houses report suspicious vehicle parked nearby during timeframe.",
+                hasEvidence: true,
+                evidenceType: "file",
+                reportDate: "2023-07-19 18:15",
+                reportedBy: "Vijayawada Police"
+            },
+            {
+                lat: 17.6868, 
+                lng: 83.2185, 
+                title: "Major Drug Trafficking Operation", 
+                location: "Beach Road, Visakhapatnam", 
+                status: "resolved",
+                description: "Joint operation seized 75kg of controlled substances being moved through fishing vessels. Street value estimated at Rs. 1.2 crore. Five suspects arrested including two foreign nationals. Operation connected to larger interstate trafficking network. GPS coordinates of handoff locations recovered.",
+                hasEvidence: true,
+                evidenceType: "image",
+                reportDate: "2023-01-08 22:40",
+                reportedBy: "Visakhapatnam Police"
+            },
+            
+            // Added reports with varied dates from earlier periods
+            {
+                lat: 28.6139, 
+                lng: 77.2090, 
+                title: "Luxury Car Theft Ring Busted", 
+                location: "Connaught Place, Delhi", 
+                status: "resolved",
+                description: "Police operation dismantled organized car theft ring operating in Delhi NCR. Gang specialized in luxury vehicles which were dismantled in chop shops and parts sold across state lines. 8 arrests made, 14 vehicles recovered valued at approx Rs. 2.8 crore.",
+                hasEvidence: true,
+                evidenceType: "file",
+                reportDate: "2022-11-05 07:15",
+                reportedBy: "Delhi Police"
+            },
+            {
+                lat: 19.0790, 
+                lng: 72.8973, 
+                title: "Financial Fraud Targeting Senior Citizens", 
+                location: "Powai, Mumbai", 
+                status: "investigating",
+                description: "Multiple elderly residents targeted by phone scam claiming to be from their bank's fraud department. Victims convinced to transfer funds to 'safe accounts'. Six known cases with combined losses of Rs. 18.4 lakhs. Phone records suggest operation based outside state.",
+                hasEvidence: true,
+                evidenceType: "file",
+                reportDate: "2022-12-18 14:50",
+                reportedBy: "Mumbai Police"
+            },
+            {
+                lat: 12.9801, 
+                lng: 77.5843, 
+                title: "Online Marketplace Scam Investigation", 
+                location: "Koramangala, Bangalore", 
+                status: "investigating",
+                description: "Series of complaints regarding fake listings on online marketplaces. Sellers disappear after receiving payment for non-existent products. Cryptocurrency payments requested to avoid tracing. Initial investigation shows sophisticated operation with fake verification documents.",
+                hasEvidence: true,
+                evidenceType: "image",
+                reportDate: "2023-04-29 10:25",
+                reportedBy: "Bangalore Police"
+            },
+            {
+                lat: 22.5726, 
+                lng: 88.3639, 
+                title: "Warehouse Arson Investigation", 
+                location: "Howrah, Kolkata", 
+                status: "pending",
+                description: "Suspicious fire at textile warehouse resulted in complete destruction of building and inventory. Insurance claim of Rs. 4.2 crore filed. Fire department noted accelerant patterns. Business had reported financial difficulties in previous quarter.",
+                hasEvidence: true,
+                evidenceType: "image",
+                reportDate: "2023-07-10 23:40",
+                reportedBy: "Kolkata Police"
+            },
+            {
+                lat: 18.9220, 
+                lng: 72.8347, 
+                title: "Jewelry Heist at Exhibition", 
+                location: "Marine Drive, Mumbai", 
+                status: "pending",
+                description: "Professional theft at annual jewelry exhibition. Estimated Rs. 3.75 crore in precious stones taken despite security presence. CCTV shows sophisticated operation with signal jamming equipment. Similar methodology to cases in other major cities.",
+                hasEvidence: true,
+                evidenceType: "image",
+                reportDate: "2023-06-04 17:20",
+                reportedBy: "Mumbai Police"
+            },
+            {
+                lat: 23.0216, 
+                lng: 72.5797, 
+                title: "Counterfeit Currency Manufacturing", 
+                location: "Navrangpura, Ahmedabad", 
+                status: "resolved",
+                description: "Raid on printing facility uncovered sophisticated counterfeit currency operation. High-quality plates and paper for Rs. 2000 notes seized. Three suspects arrested. Operation believed to be part of larger network with international connections.",
+                hasEvidence: true,
+                evidenceType: "file",
+                reportDate: "2022-09-12 08:30",
+                reportedBy: "Ahmedabad Police"
+            },
+            {
+                lat: 30.7333, 
+                lng: 76.7794, 
+                title: "University Entrance Exam Cheating Ring", 
+                location: "Sector 17, Chandigarh", 
+                status: "investigating",
+                description: "Investigation into organized cheating operation involving engineering entrance exams. Suspects used electronic devices to transmit questions and receive answers. Seven students identified using identical incorrect answers. Search ongoing for masterminds.",
+                hasEvidence: true,
+                evidenceType: "file",
+                reportDate: "2022-07-08 11:15",
+                reportedBy: "Chandigarh Police"
+            },
+            {
+                lat: 17.4400, 
+                lng: 78.3800, 
+                title: "Corporate Espionage Investigation", 
+                location: "HITEC City, Hyderabad", 
+                status: "investigating",
+                description: "Tech company reports insider theft of proprietary software code valued at approximately Rs. 15 crore. Initial investigation suggests former employee downloaded sensitive data before joining competitor. International legal coordination underway.",
+                hasEvidence: true,
+                evidenceType: "file",
+                reportDate: "2022-08-23 16:10",
+                reportedBy: "Hyderabad Police"
+            },
+            {
+                lat: 26.8739, 
+                lng: 80.9200, 
+                title: "Government Document Forgery Ring", 
+                location: "Hazratganj, Lucknow", 
+                status: "resolved",
+                description: "Operation dismantled forgery network specializing in PAN cards, Aadhar cards and other government documents. Specialized printing equipment and hundreds of blank cards recovered. Five arrests including government employee who provided access to systems.",
+                hasEvidence: true,
+                evidenceType: "image",
+                reportDate: "2022-10-17 09:45",
+                reportedBy: "Lucknow Police"
+            },
+            {
+                lat: 13.0473, 
+                lng: 80.2320, 
+                title: "Hospital Pharmaceutical Theft", 
+                location: "Anna Nagar, Chennai", 
+                status: "pending",
+                description: "Ongoing investigation into theft of restricted medications from hospital pharmacy. Inventory discrepancies reveal consistent pattern of losses over six months. Street value of missing medications estimated at Rs. 32 lakhs. Internal suspects being investigated.",
+                hasEvidence: true,
+                evidenceType: "file",
+                reportDate: "2023-07-08 13:25",
+                reportedBy: "Chennai Police"
+            }
+        ];
+
+        // Add additional points to mapData
+        additionalPoints.forEach(function(point, index) {
+            var demoId = 'demo-' + Math.random().toString(36).substr(2, 9);
+            
+            var newPoint = {
+                id: demoId,
+                lat: point.lat,
+                lng: point.lng,
+                title: point.title,
+                location: point.location,
+                status: point.status,
+                description: point.description || "No detailed description available",
+                timestamp: point.reportDate || new Date().toISOString().slice(0, 16).replace('T', ' '),
+                reportedBy: point.reportedBy || "Anonymous Citizen",
+                evidence_file: point.evidenceType === 'image' ? 
+                    'sample_evidence_' + Math.floor(Math.random() * 5) + '.jpg' : 
+                    'sample_report_' + Math.floor(Math.random() * 5) + '.pdf',
+                hasEvidence: true
+            };
+            
+            mapData.push(newPoint);
+            
+            // Add to heat data array with intensity based on status
+            var intensity = point.status === 'pending' ? 0.3 : 
+                           point.status === 'investigating' ? 0.6 : 
+                           point.status === 'resolved' ? 0.1 : 0.2;
+            heatData.push([point.lat, point.lng, intensity]);
+        });
+        
+        // Function to create and add markers
+        function createMarkers() {
+            markers.clearLayers();
+            allMarkers = {};
+            
+            mapData.forEach(function(report) {
+                var markerColor = report.status === 'pending' ? '#ffc107' : 
+                                 report.status === 'investigating' ? '#17a2b8' : 
+                                 report.status === 'resolved' ? '#28a745' : '#6c757d';
+                                 
+                var marker = L.marker([report.lat, report.lng], {
+                    icon: L.divIcon({
+                        className: 'custom-div-icon',
+                        html: '<div style="' +
+                            'background-color: ' + markerColor + ';' +
+                            'width: 16px;' +
+                            'height: 16px;' +
+                            'border-radius: 50%;' +
+                            'border: 2px solid white;' +
+                            'box-shadow: 0 0 8px rgba(0,0,0,0.5);' +
+                            'transition: all 0.3s ease;' +
+                            '"></div>',
+                        iconSize: [24, 24],
+                        iconAnchor: [12, 12]
+                    })
+                })
+                .bindPopup(
+                    '<div class="crime-popup">' +
+                        '<h6 class="mb-2"><strong>' + report.title + '</strong></h6>' +
+                        '<p class="mb-1"><i class="fas fa-map-marker-alt text-danger"></i> ' + report.location + '</p>' +
+                        '<p class="mb-1"><i class="fas fa-clock text-info"></i> ' + report.timestamp + '</p>' +
+                        '<p class="mb-1"><i class="fas fa-user text-primary"></i> ' + report.reportedBy + '</p>' +
+                        '<p class="mb-2"><i class="fas fa-info-circle text-warning"></i> Status: ' +
+                            '<span class="badge bg-' + (
+                                report.status === 'pending' ? 'warning' : 
+                                report.status === 'investigating' ? 'info' : 
+                                report.status === 'resolved' ? 'success' : 'secondary'
+                            ) + '">' + report.status.toUpperCase() + '</span>' +
+                        '</p>' +
+                        (report.description ? '<p class="mb-2 small text-muted border-top pt-2">' + report.description.substring(0, 150) + (report.description.length > 150 ? '...' : '') + '</p>' : '') +
+                        (report.hasEvidence || report.evidence_file ? 
+                            '<div class="evidence-section mb-2 border-top pt-2">' +
+                                '<p class="mb-1"><i class="fas fa-file-alt text-primary"></i> <strong>Evidence Available:</strong></p>' + 
+                                '<div class="evidence-preview p-2 bg-light rounded">' + 
+                                    '<i class="fas fa-' + (report.evidence_file && report.evidence_file.toLowerCase().endsWith('.pdf') ? 'file-pdf text-danger' : 'image text-primary') + ' me-1 fa-2x"></i> ' + 
+                                    '<span class="ms-2">' + (report.evidence_file || 'Evidence file') + '</span>' +
+                                '</div>' +
+                            '</div>' : 
+                            '') +
+                        '<div class="d-flex gap-2 mt-3">' +
+                            '<a href="/crime/' + report.id + '" class="btn btn-sm btn-primary">' +
+                                '<i class="fas fa-eye"></i> View' +
+                            '</a>' +
+                            '<a href="/update_report/' + report.id + '" class="btn btn-sm btn-info">' +
+                                '<i class="fas fa-edit"></i> Update' +
+                            '</a>' +
+                        '</div>' +
+                    '</div>',
+                    {
+                        maxWidth: 300,
+                        className: 'custom-popup'
+                    }
+                );
+                
+                allMarkers[report.id] = {
+                    marker: marker,
+                    data: report
+                };
+                
+                if ($('#filter' + report.status.charAt(0).toUpperCase() + report.status.slice(1)).is(':checked')) {
+                    markers.addLayer(marker);
+                }
+            });
+            
+            return markers;
+        }
+        
+        // Function to filter heat data
+        function filterHeatData() {
+            filteredHeatData = [];
+            
+            // Check which statuses are selected
+            var selectedStatuses = [];
+            $('.filter-status:checked').each(function() {
+                selectedStatuses.push($(this).val());
+            });
+            
+            // Filter map data
+            mapData.forEach(function(report) {
+                if (selectedStatuses.includes(report.status)) {
+                    var intensity = report.status === 'pending' ? 0.3 : 
+                                    report.status === 'investigating' ? 0.6 : 
+                                    report.status === 'resolved' ? 0.1 : 0.2;
+                    filteredHeatData.push([report.lat, report.lng, intensity]);
+                }
+            });
+            
+            // Create new heat layer
+            if (heatLayer) {
+                map.removeLayer(heatLayer);
+            }
+            
+            heatLayer = L.heatLayer(filteredHeatData, {
+                radius: 40,
+                blur: 30,
+                maxZoom: 11,
+                gradient: {
+                    0.1: '#4575b4',
+                    0.2: '#74add1',
+                    0.3: '#abd9e9',
+                    0.4: '#e0f3f8',
+                    0.5: '#fee090',
+                    0.6: '#fdae61',
+                    0.7: '#f46d43',
+                    0.8: '#d73027',
+                    0.9: '#a50026'
+                },
+                minOpacity: 0.4,
+                max: 1.0
+            });
+            
+            return heatLayer;
+        }
+        
+        // Initialize markers and heat layer
+        createMarkers();
+        filterHeatData();
+        
+        // Add map layers
+        map.addLayer(markers);
+        map.addLayer(heatLayer);
+        
+        // Force a map refresh to ensure it renders correctly
+        setTimeout(function() {
+            map.invalidateSize();
+        }, 500);
+        
+        // Handle status filter changes
+        $('.filter-status').change(function() {
+            // Update markers
+            markers.clearLayers();
+            
+            Object.values(allMarkers).forEach(function(item) {
+                var statusFilter = '#filter' + item.data.status.charAt(0).toUpperCase() + item.data.status.slice(1);
+                if ($(statusFilter).is(':checked')) {
+                    markers.addLayer(item.marker);
+                }
+            });
+            
+            // Update heat layer
+            filterHeatData();
+            
+            // If heat view is active, add the layer
+            if ($('[data-view="heat"]').hasClass('active')) {
+                map.addLayer(heatLayer);
+            }
+        });
+
+        // Function to switch between views
+        function switchView(view) {
+            if (view === 'heat') {
+                map.removeLayer(markers);
+                map.addLayer(heatLayer);
+                $('.legend').hide();
+                $('.heat-legend').show();
+            } else {
+                map.removeLayer(heatLayer);
+                map.addLayer(markers);
+                $('.legend').show();
+                $('.heat-legend').hide();
+            }
+        }
+
+        // Add click handlers for view buttons
+        $('.btn-group .btn').click(function() {
+            if ($(this).data('view')) {
+                $('.btn-group .btn').removeClass('active');
+                $(this).addClass('active');
+                switchView($(this).data('view'));
+            }
+        });
+
+        // Handle location button click
+        $('#locateMe').click(function() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(function(position) {
+                    var lat = position.coords.latitude;
+                    var lng = position.coords.longitude;
+                    var accuracy = position.coords.accuracy;
+
+                    // Remove existing user marker and circle if they exist
+                    if (userMarker) map.removeLayer(userMarker);
+                    if (userCircle) map.removeLayer(userCircle);
+
+                    // Add new user marker and accuracy circle
+                    userMarker = L.marker([lat, lng], {
+                        icon: L.divIcon({
+                            className: 'custom-div-icon',
+                            html: '<div style="background-color: #4285f4; width: 12px; height: 12px; border-radius: 50%; border: 2px solid white;"></div>',
+                            iconSize: [16, 16],
+                            iconAnchor: [8, 8]
+                        })
+                    }).addTo(map);
+
+                    userCircle = L.circle([lat, lng], {
+                        radius: accuracy,
+                        color: '#4285f4',
+                        fillColor: '#4285f4',
+                        fillOpacity: 0.15,
+                        weight: 1
+                    }).addTo(map);
+
+                    // Center map on user location
+                    map.setView([lat, lng], 15);
+                }, function(error) {
+                    alert('Error getting location: ' + error.message);
+                });
+            } else {
+                alert('Geolocation is not supported by your browser');
+            }
+        });
+
+        // Fit map bounds to show all markers
+        var bounds = L.latLngBounds([]);
+        markers.eachLayer((layer) => {
+            bounds.extend(layer.getLatLng());
+        });
+        if (!bounds.isValid()) {
+            bounds = L.latLngBounds([[20.5937, 78.9629], [20.5937, 78.9629]]);
+        }
+        map.fitBounds(bounds, { padding: [50, 50] });
+    });
+
+    // Add a function to open evidence preview in a new lightweight window
+    function openImagePreview(imageUrl) {
+        // Create a simple popup window with just the image
+        const popupWindow = window.open('', 'Evidence Preview', 'width=800,height=600,resizable=yes');
+        
+        // Write a simple HTML document to the popup window
+        popupWindow.document.write(`
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Evidence Preview</title>
+                <style>
+                    body {
+                        margin: 0;
+                        padding: 0;
+                        display: flex;
+                        justify-content: center;
+                        align-items: center;
+                        height: 100vh;
+                        background-color: #2a2a2a;
+                    }
+                    img {
+                        max-width: 95%;
+                        max-height: 95%;
+                        object-fit: contain;
+                        box-shadow: 0 0 20px rgba(0,0,0,0.3);
+                    }
+                </style>
+            </head>
+            <body>
+                <img src="${imageUrl}" alt="Evidence Preview">
+            </body>
+            </html>
+        `);
+    }
+</script>
+{% endblock %}

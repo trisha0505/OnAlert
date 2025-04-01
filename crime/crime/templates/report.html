@@ -1,0 +1,322 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card glass-effect">
+            <div class="card-header">
+                <h3 class="text-center">Report a Crime</h3>
+            </div>
+            <div class="card-body">
+                <form method="POST" enctype="multipart/form-data" id="reportForm">
+                    <div class="mb-3">
+                        <label for="title" class="form-label">Crime Type</label>
+                        <select class="form-select glass-effect" id="title" name="title" required>
+                            <option value="" selected disabled>Select crime type</option>
+                            <option value="Theft">Theft</option>
+                            <option value="Robbery">Robbery</option>
+                            <option value="Assault">Assault</option>
+                            <option value="Burglary">Burglary</option>
+                            <option value="Vehicle Theft">Vehicle Theft</option>
+                            <option value="Vandalism">Vandalism</option>
+                            <option value="Drug-related">Drug-related Crime</option>
+                            <option value="Fraud">Fraud</option>
+                            <option value="Harassment">Harassment</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Description</label>
+                        <textarea class="form-control glass-effect" id="description" name="description" rows="3" required></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="location" class="form-label">Location</label>
+                        <input type="text" class="form-control glass-effect" id="location" name="location" required>
+                    </div>
+                    <!-- Map Section -->
+                    <div class="mb-3">
+                        <label for="map" class="form-label">Map Location</label>
+                        <div id="map" style="height: 300px;"></div>
+                    </div>
+                    <!-- Upload Evidence Section -->
+                    <div class="mb-3">
+                        <label for="evidence" class="form-label">Upload Evidence (Optional)</label>
+                        <input type="file" class="form-control glass-effect" id="evidence" name="evidence" accept="image/*,.pdf,.doc,.docx">
+                        <div class="form-text">Accepted formats: Images (JPG, PNG), PDF, DOC, DOCX</div>
+                        <div id="imagePreview" class="mt-2" style="display: none;">
+                            <img id="preview" src="" alt="Preview" style="max-width: 200px; max-height: 200px;">
+                        </div>
+                    </div>
+                    <!-- Suspect Description Section -->
+                    <div class="card mt-4">
+                        <div class="card-header">
+                            <h4>Suspect Description</h4>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-group">
+                                <label for="suspect_description">Describe the Suspect</label>
+                                <textarea class="form-control" id="suspect_description" name="suspect_description" rows="4" 
+                                          placeholder="Please provide detailed description including:&#10;- Age&#10;- Height&#10;- Build&#10;- Hair color and style&#10;- Eye color&#10;- Facial features&#10;- Clothing&#10;- Any distinguishing marks or features"></textarea>
+                            </div>
+                            
+                            <div class="form-group">
+                                <button type="button" class="btn btn-primary" id="generateSketch">Generate Suspect Sketch</button>
+                            </div>
+                            
+                            <div id="sketchContainer" class="mt-3" style="display: none;">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <img id="generatedSketch" class="img-fluid" alt="Generated Suspect Sketch">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <button type="button" class="btn btn-secondary" id="regenerateSketch">Regenerate Sketch</button>
+                                        </div>
+                                        <div class="form-group">
+                                            <button type="button" class="btn btn-success" id="saveSketch">Save Sketch</button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <input type="hidden" id="suspect_sketch" name="suspect_sketch">
+                            </div>
+                        </div>
+                    </div>
+                    <input type="hidden" id="latitude" name="latitude">
+                    <input type="hidden" id="longitude" name="longitude">
+                    <button type="submit" class="btn btn-primary glass-effect">Submit Report</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Loading Modal -->
+<div class="modal fade" id="loadingModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-body text-center">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="sr-only">Loading...</span>
+                </div>
+                <p class="mt-2">Generating suspect sketch...</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Initialize the map
+    var map = L.map('map').setView([20.5937, 78.9629], 5); // Default view
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors'
+    }).addTo(map);
+
+    // Function to get the user's current location
+    function getLocation() {
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(showPosition, showError);
+        } else {
+            alert("Geolocation is not supported by this browser.");
+        }
+    }
+
+    function showPosition(position) {
+        var lat = position.coords.latitude;
+        var lon = position.coords.longitude;
+
+        // Set the map view to the user's location
+        map.setView([lat, lon], 13);
+
+        // Add a marker for the user's location
+        L.marker([lat, lon]).addTo(map)
+            .bindPopup("You are here")
+            .openPopup();
+
+        // Update hidden fields with the user's location
+        document.getElementById('latitude').value = lat;
+        document.getElementById('longitude').value = lon;
+    }
+
+    function showError(error) {
+        switch(error.code) {
+            case error.PERMISSION_DENIED:
+                alert("User denied the request for Geolocation.");
+                break;
+            case error.POSITION_UNAVAILABLE:
+                alert("Location information is unavailable.");
+                break;
+            case error.TIMEOUT:
+                alert("The request to get user location timed out.");
+                break;
+            case error.UNKNOWN_ERROR:
+                alert("An unknown error occurred.");
+                break;
+        }
+    }
+
+    // Call getLocation to fetch the user's current location
+    getLocation();
+
+    // Image preview functionality
+    document.getElementById('evidence').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        const preview = document.getElementById('preview');
+        const previewDiv = document.getElementById('imagePreview');
+        
+        if (file) {
+            if (file.type.startsWith('image/')) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    preview.src = e.target.result;
+                    previewDiv.style.display = 'block';
+                }
+                reader.readAsDataURL(file);
+            } else {
+                previewDiv.style.display = 'none';
+            }
+        }
+    });
+
+    // Form validation
+    document.getElementById('reportForm').addEventListener('submit', function(e) {
+        const lat = document.getElementById('latitude').value;
+        const lng = document.getElementById('longitude').value;
+        if (!lat || !lng) {
+            e.preventDefault();
+            alert('Please allow location access to get your current location');
+            return;
+        }
+    });
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const generateBtn = document.getElementById('generateSketch');
+        const regenerateBtn = document.getElementById('regenerateSketch');
+        const saveBtn = document.getElementById('saveSketch');
+        const sketchContainer = document.getElementById('sketchContainer');
+        const generatedSketch = document.getElementById('generatedSketch');
+        const suspectSketchInput = document.getElementById('suspect_sketch');
+        const loadingModal = new bootstrap.Modal(document.getElementById('loadingModal'));
+
+        // Create error modal
+        const errorModalHtml = `
+            <div class="modal fade" id="errorModal" tabindex="-1" role="dialog">
+                <div class="modal-dialog" role="document">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Error Generating Sketch</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <p id="errorMessage"></p>
+                            <div id="errorHelp" class="alert alert-info mt-3" style="display: none;"></div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        document.body.insertAdjacentHTML('beforeend', errorModalHtml);
+        const errorModal = new bootstrap.Modal(document.getElementById('errorModal'));
+
+        function showError(error, errorType) {
+            const errorMessage = document.getElementById('errorMessage');
+            const errorHelp = document.getElementById('errorHelp');
+            
+            errorMessage.textContent = error;
+            errorHelp.style.display = 'none';
+            
+            if (errorType === 'model_loading') {
+                errorHelp.innerHTML = `
+                    <strong>What's happening?</strong>
+                    <p>The AI model is currently warming up. This is normal and usually takes 1-2 minutes.</p>
+                    <strong>What can you do?</strong>
+                    <ul class="mb-0">
+                        <li>Wait a few moments and try again</li>
+                        <li>If the issue persists, you can:</li>
+                        <ul>
+                            <li>Continue with your report without the AI-generated sketch</li>
+                            <li>Upload a manual sketch or photo instead</li>
+                        </ul>
+                    </ul>
+                `;
+                errorHelp.style.display = 'block';
+            } else if (errorType === 'auth_error') {
+                errorHelp.innerHTML = `
+                    <strong>What can you do?</strong>
+                    <ul class="mb-0">
+                        <li>Please contact the system administrator</li>
+                        <li>In the meantime, you can:</li>
+                        <ul>
+                            <li>Continue with your report without the AI-generated sketch</li>
+                            <li>Upload a manual sketch or photo instead</li>
+                        </ul>
+                    </ul>
+                `;
+                errorHelp.style.display = 'block';
+            } else if (errorType === 'api_error') {
+                errorHelp.innerHTML = `
+                    <strong>What can you do?</strong>
+                    <ul class="mb-0">
+                        <li>Try again in a few moments</li>
+                        <li>If the issue persists:</li>
+                        <ul>
+                            <li>Continue with your report without the AI-generated sketch</li>
+                            <li>Upload a manual sketch or photo instead</li>
+                            <li>Contact support if the problem continues</li>
+                        </ul>
+                    </ul>
+                `;
+                errorHelp.style.display = 'block';
+            }
+            
+            errorModal.show();
+        }
+
+        async function generateSketch() {
+            const description = document.getElementById('suspect_description').value;
+            if (!description) {
+                showError('Please provide a suspect description first.');
+                return;
+            }
+
+            loadingModal.show();
+            try {
+                const response = await fetch('/generate-sketch', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: `description=${encodeURIComponent(description)}`
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    generatedSketch.src = `data:image/png;base64,${data.image}`;
+                    sketchContainer.style.display = 'block';
+                    suspectSketchInput.value = `data:image/png;base64,${data.image}`;
+                } else {
+                    showError(data.error, data.error_type);
+                }
+            } catch (error) {
+                showError('Network error while generating sketch. Please try again.');
+            } finally {
+                loadingModal.hide();
+            }
+        }
+
+        generateBtn.addEventListener('click', generateSketch);
+        regenerateBtn.addEventListener('click', generateSketch);
+        
+        saveBtn.addEventListener('click', function() {
+            // The sketch is already saved in the hidden input
+            alert('Sketch saved successfully!');
+        });
+    });
+</script>
+{% endblock %} 

@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+
+{% block title %}Police Login{% endblock %}
+
+{% block content %}
+<section class="admin-login">
+    <div class="container mt-5">
+        <div class="row">
+            <div class="col-md-6 offset-md-3">
+                <div class="card glass-effect">
+                    <div class="card-header">
+                        <h3 class="text-center"><i class="fas fa-shield-alt me-2"></i>Police Department Login</h3>
+                    </div>
+                    <div class="card-body">
+                        {% with messages = get_flashed_messages(with_categories=true) %}
+                            {% if messages %}
+                                {% for category, message in messages %}
+                                    <div class="alert glass-effect">
+                                        {{ message }}
+                                    </div>
+                                {% endfor %}
+                            {% endif %}
+                        {% endwith %}
+                        
+                        <form method="POST" action="{{ url_for('admin_login') }}">
+                            <div class="mb-4">
+                                <label for="username" class="form-label">Badge Number</label>
+                                <div class="input-group">
+                                    <span class="input-group-text glass-effect"><i class="fas fa-id-badge"></i></span>
+                                    <input type="text" class="form-control glass-effect" id="username" name="username" placeholder="Enter your badge number" required>
+                                </div>
+                            </div>
+                            <div class="mb-4">
+                                <label for="password" class="form-label">Password</label>
+                                <div class="input-group">
+                                    <span class="input-group-text glass-effect"><i class="fas fa-lock"></i></span>
+                                    <input type="password" class="form-control glass-effect" id="password" name="password" placeholder="Enter your password" required>
+                                </div>
+                            </div>
+                            <div class="d-grid gap-2">
+                                <button type="submit" class="btn btn-primary glass-effect">
+                                    <i class="fas fa-sign-in-alt me-2"></i>Login
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="card-footer text-center">
+                        <a href="{{ url_for('home') }}" class="btn btn-outline-secondary glass-effect">
+                            <i class="fas fa-home me-1"></i>Return to Home
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

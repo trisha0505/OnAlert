@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-cog"></i> News & Alert Preferences
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('news_preferences') }}">
+                        <!-- Location Settings -->
+                        <div class="mb-4">
+                            <h5><i class="fas fa-map-marker-alt"></i> Location Settings</h5>
+                            <div class="mb-3">
+                                <label for="location" class="form-label">Primary Location</label>
+                                <input type="text" class="form-control" id="location" name="location"
+                                       value="{{ preferences.location if preferences else '' }}"
+                                       placeholder="Enter your location">
+                                <div class="form-text">News and alerts will be filtered based on this location.</div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="radius" class="form-label">Coverage Radius (km)</label>
+                                <input type="number" class="form-control" id="radius" name="radius"
+                                       value="{{ preferences.radius if preferences else 10.0 }}"
+                                       min="1" max="100">
+                                <div class="form-text">You'll receive updates for events within this radius.</div>
+                            </div>
+                        </div>
+
+                        <!-- News Categories -->
+                        <div class="mb-4">
+                            <h5><i class="fas fa-tags"></i> News Categories</h5>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="categories" value="robbery"
+                                       id="cat_robbery" {% if preferences and 'robbery' in preferences.categories %}checked{% endif %}>
+                                <label class="form-check-label" for="cat_robbery">Robbery</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="categories" value="assault"
+                                       id="cat_assault" {% if preferences and 'assault' in preferences.categories %}checked{% endif %}>
+                                <label class="form-check-label" for="cat_assault">Assault</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="categories" value="burglary"
+                                       id="cat_burglary" {% if preferences and 'burglary' in preferences.categories %}checked{% endif %}>
+                                <label class="form-check-label" for="cat_burglary">Burglary</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="categories" value="vehicle"
+                                       id="cat_vehicle" {% if preferences and 'vehicle' in preferences.categories %}checked{% endif %}>
+                                <label class="form-check-label" for="cat_vehicle">Vehicle Crime</label>
+                            </div>
+                        </div>
+
+                        <!-- Alert Types -->
+                        <div class="mb-4">
+                            <h5><i class="fas fa-exclamation-triangle"></i> Alert Types</h5>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="alert_types" value="emergency"
+                                       id="alert_emergency" {% if preferences and 'emergency' in preferences.alert_types %}checked{% endif %}>
+                                <label class="form-check-label" for="alert_emergency">Emergency Alerts</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="alert_types" value="warning"
+                                       id="alert_warning" {% if preferences and 'warning' in preferences.alert_types %}checked{% endif %}>
+                                <label class="form-check-label" for="alert_warning">Warning Alerts</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="alert_types" value="advisory"
+                                       id="alert_advisory" {% if preferences and 'advisory' in preferences.alert_types %}checked{% endif %}>
+                                <label class="form-check-label" for="alert_advisory">Advisory Alerts</label>
+                            </div>
+                        </div>
+
+                        <!-- Notification Settings -->
+                        <div class="mb-4">
+                            <h5><i class="fas fa-bell"></i> Notification Settings</h5>
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="checkbox" name="email_notifications"
+                                       id="email_notifications" {% if preferences and preferences.email_notifications %}checked{% endif %}>
+                                <label class="form-check-label" for="email_notifications">
+                                    Email Notifications
+                                </label>
+                            </div>
+                            <div class="form-check mb-3">
+                                <input class="form-check-input" type="checkbox" name="push_notifications"
+                                       id="push_notifications" {% if preferences and preferences.push_notifications %}checked{% endif %}>
+                                <label class="form-check-label" for="push_notifications">
+                                    Push Notifications
+                                </label>
+                            </div>
+                            <div class="mb-3">
+                                <label for="notification_frequency" class="form-label">Notification Frequency</label>
+                                <select class="form-select" id="notification_frequency" name="notification_frequency">
+                                    <option value="realtime" {% if preferences and preferences.notification_frequency == 'realtime' %}selected{% endif %}>
+                                        Real-time
+                                    </option>
+                                    <option value="daily" {% if preferences and preferences.notification_frequency == 'daily' %}selected{% endif %}>
+                                        Daily Digest
+                                    </option>
+                                    <option value="weekly" {% if preferences and preferences.notification_frequency == 'weekly' %}selected{% endif %}>
+                                        Weekly Summary
+                                    </option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Save Button -->
+                        <div class="text-end">
+                            <a href="{{ url_for('crime_news') }}" class="btn btn-secondary me-2">Cancel</a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> Save Preferences
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

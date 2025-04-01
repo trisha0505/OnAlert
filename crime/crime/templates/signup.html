@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card glass-effect">
+            <div class="card-header">
+                <h3 class="text-center"><i class="fas fa-user-plus me-2"></i>Sign Up</h3>
+            </div>
+            <div class="card-body">
+                <form method="POST" id="signupForm">
+                    <div class="mb-3">
+                        <label for="username" class="form-label">Username</label>
+                        <input type="text" class="form-control glass-effect" id="username" name="username" required minlength="3">
+                        <div class="form-text">Username must be at least 3 characters long.</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="email" class="form-label">Email</label>
+                        <input type="email" class="form-control glass-effect" id="email" name="email" required>
+                        <div class="form-text">Please enter a valid email address.</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="password" class="form-label">Password</label>
+                        <input type="password" class="form-control glass-effect" id="password" name="password" required minlength="6">
+                        <div class="form-text">
+                            Password requirements:
+                            <ul class="mt-1">
+                                <li>At least 6 characters long</li>
+                                <li>Must contain at least one letter</li>
+                                <li>Must contain at least one number</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="confirm_password" class="form-label">Confirm Password</label>
+                        <input type="password" class="form-control glass-effect" id="confirm_password" name="confirm_password" required minlength="6">
+                        <div class="form-text">Please re-enter your password to confirm.</div>
+                    </div>
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary glass-effect">
+                            <i class="fas fa-user-plus me-2"></i>Sign Up
+                        </button>
+                    </div>
+                </form>
+                <div class="text-center mt-3">
+                    <p>Already have an account? <a href="{{ url_for('login') }}" class="btn btn-outline-primary btn-sm glass-effect">
+                        <i class="fas fa-sign-in-alt me-1"></i>Login here
+                    </a></p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block scripts %}
+<script>
+document.getElementById('signupForm').addEventListener('submit', function(e) {
+    const password = document.getElementById('password').value;
+    const confirmPassword = document.getElementById('confirm_password').value;
+    
+    // Password validation
+    const hasLetter = /[a-zA-Z]/.test(password);
+    const hasNumber = /[0-9]/.test(password);
+    const isLongEnough = password.length >= 6;
+    
+    let errors = [];
+    
+    if (!isLongEnough) {
+        errors.push('Password must be at least 6 characters long');
+    }
+    if (!hasLetter) {
+        errors.push('Password must contain at least one letter');
+    }
+    if (!hasNumber) {
+        errors.push('Password must contain at least one number');
+    }
+    if (password !== confirmPassword) {
+        errors.push('Passwords do not match');
+    }
+    
+    if (errors.length > 0) {
+        e.preventDefault();
+        alert(errors.join('\n'));
+    }
+});
+</script>
+{% endblock %}
+{% endblock %} 

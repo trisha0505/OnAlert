@@ -1,0 +1,539 @@
+{% extends "base.html" %}
+
+{% block title %}Setup Alerts{% endblock %}
+
+{% block extra_css %}
+<style>
+    .alerts-setup {
+        padding: 40px 20px;
+        max-width: 1000px;
+        margin: 0 auto;
+    }
+
+    .section-title {
+        text-align: center;
+        margin-bottom: 30px;
+        color: var(--text-primary);
+    }
+
+    .alerts-intro {
+        max-width: 800px;
+        margin: 0 auto 40px;
+        text-align: center;
+        color: var(--text-secondary);
+        line-height: 1.6;
+    }
+
+    .alerts-container {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 30px;
+        margin-bottom: 40px;
+    }
+
+    .alert-card {
+        background: var(--glass-bg);
+        backdrop-filter: blur(8px);
+        border: 1px solid var(--glass-border);
+        border-radius: 15px;
+        padding: 30px;
+        transition: all 0.3s ease;
+    }
+
+    .alert-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    }
+
+    .alert-icon {
+        font-size: 2.5rem;
+        margin-bottom: 20px;
+        text-align: center;
+        color: var(--text-primary);
+    }
+
+    .alert-card h3 {
+        margin-bottom: 15px;
+        text-align: center;
+        color: var(--text-primary);
+    }
+
+    .alert-desc {
+        margin-bottom: 25px;
+        color: var(--text-secondary);
+        line-height: 1.5;
+    }
+
+    .toggle-container {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 15px;
+    }
+
+    .toggle-container label {
+        color: var(--text-primary);
+        font-weight: 500;
+    }
+
+    .toggle-switch {
+        position: relative;
+        display: inline-block;
+        width: 60px;
+        height: 34px;
+    }
+
+    .toggle-switch input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+    }
+
+    .slider {
+        position: absolute;
+        cursor: pointer;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: #ccc;
+        transition: .4s;
+        border-radius: 34px;
+    }
+
+    .slider:before {
+        position: absolute;
+        content: "";
+        height: 26px;
+        width: 26px;
+        left: 4px;
+        bottom: 4px;
+        background-color: white;
+        transition: .4s;
+        border-radius: 50%;
+    }
+
+    input:checked + .slider {
+        background-color: #2196F3;
+    }
+
+    input:focus + .slider {
+        box-shadow: 0 0 1px #2196F3;
+    }
+
+    input:checked + .slider:before {
+        transform: translateX(26px);
+    }
+
+    .frequency-select {
+        margin-top: 5px;
+        width: 100%;
+        padding: 10px;
+        border-radius: 8px;
+        border: 1px solid var(--glass-border);
+        background: rgba(255, 255, 255, 0.1);
+        color: var(--text-primary);
+    }
+
+    .location-input {
+        margin-top: 5px;
+        padding: 10px;
+        border-radius: 8px;
+        border: 1px solid var(--glass-border);
+        background: rgba(255, 255, 255, 0.1);
+        color: var(--text-primary);
+        width: 100%;
+    }
+
+    .btn-save {
+        background-color: #2196F3;
+        color: white;
+        border: none;
+        padding: 12px 20px;
+        border-radius: 8px;
+        font-weight: 600;
+        margin-top: 30px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        width: 100%;
+    }
+
+    .btn-save:hover {
+        background-color: #0b7dda;
+        transform: translateY(-2px);
+    }
+
+    .notification-preferences {
+        background: var(--glass-bg);
+        backdrop-filter: blur(8px);
+        border: 1px solid var(--glass-border);
+        border-radius: 15px;
+        padding: 30px;
+        margin-bottom: 40px;
+    }
+
+    .notification-preferences h3 {
+        text-align: center;
+        margin-bottom: 20px;
+        color: var(--text-primary);
+    }
+
+    .contact-methods {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 20px;
+        margin-bottom: 20px;
+    }
+
+    .method-card {
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 10px;
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .method-card label {
+        display: flex;
+        align-items: center;
+        color: var(--text-primary);
+        margin-bottom: 15px;
+        font-weight: 500;
+    }
+
+    .method-card label input {
+        margin-right: 10px;
+    }
+
+    .method-card p {
+        color: var(--text-secondary);
+        font-size: 0.9rem;
+        margin-bottom: 15px;
+    }
+
+    .contact-info {
+        padding: 10px;
+        border-radius: 8px;
+        border: 1px solid var(--glass-border);
+        background: rgba(255, 255, 255, 0.1);
+        color: var(--text-primary);
+        width: 100%;
+    }
+
+    /* Light theme fixes */
+    [data-theme="light"] .alert-card,
+    [data-theme="light"] .notification-preferences,
+    [data-theme="light"] .method-card {
+        background: white;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+    }
+
+    [data-theme="light"] .frequency-select,
+    [data-theme="light"] .location-input,
+    [data-theme="light"] .contact-info {
+        background: white;
+        border-color: rgba(0, 0, 0, 0.1);
+    }
+
+    /* Success message animation */
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translate3d(0, 40px, 0);
+        }
+        to {
+            opacity: 1;
+            transform: translate3d(0, 0, 0);
+        }
+    }
+
+    .success-message {
+        animation: fadeInUp 0.5s;
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+        .alerts-container {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="alerts-setup">
+    <h2 class="section-title">Setup Neighborhood Watch Alerts</h2>
+    
+    <div class="alerts-intro">
+        <p>Configure the types of alerts you'd like to receive from your neighborhood watch group. Stay informed about important safety updates and incidents in your area.</p>
+    </div>
+
+    <form id="alertsForm" action="{{ url_for('save_alerts') }}" method="POST">
+        <div class="alerts-container">
+            <div class="alert-card">
+                <div class="alert-icon">🚨</div>
+                <h3>Crime Alerts</h3>
+                <p class="alert-desc">Get notified about crimes reported in your area, including break-ins, thefts, and suspicious activities.</p>
+                
+                <div class="toggle-container">
+                    <label for="crimeAlerts">Enable crime alerts</label>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="crimeAlerts" name="crime_alerts" {% if alert_prefs.crime_alerts %}checked{% endif %}>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                
+                <div class="toggle-container">
+                    <label for="crimeRadius">Distance radius</label>
+                    <select id="crimeRadius" name="crime_radius" class="frequency-select">
+                        <option value="1" {% if alert_prefs.crime_radius == 1 %}selected{% endif %}>1 km</option>
+                        <option value="2" {% if alert_prefs.crime_radius == 2 or not alert_prefs.crime_radius %}selected{% endif %}>2 km</option>
+                        <option value="5" {% if alert_prefs.crime_radius == 5 %}selected{% endif %}>5 km</option>
+                        <option value="10" {% if alert_prefs.crime_radius == 10 %}selected{% endif %}>10 km</option>
+                        <option value="25" {% if alert_prefs.crime_radius == 25 %}selected{% endif %}>25 km</option>
+                    </select>
+                </div>
+                
+                <div class="toggle-container">
+                    <label for="crimeFrequency">Alert frequency</label>
+                    <select id="crimeFrequency" name="crime_frequency" class="frequency-select">
+                        <option value="immediately" {% if alert_prefs.crime_frequency == 'immediately' %}selected{% endif %}>Immediately</option>
+                        <option value="daily" {% if alert_prefs.crime_frequency == 'daily' or not alert_prefs.crime_frequency %}selected{% endif %}>Daily digest</option>
+                        <option value="weekly" {% if alert_prefs.crime_frequency == 'weekly' %}selected{% endif %}>Weekly summary</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="alert-card">
+                <div class="alert-icon">👥</div>
+                <h3>Community Updates</h3>
+                <p class="alert-desc">Stay informed about neighborhood watch meetings, safety initiatives, and community events in your area.</p>
+                
+                <div class="toggle-container">
+                    <label for="communityAlerts">Enable community updates</label>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="communityAlerts" name="community_alerts" {% if alert_prefs.community_alerts %}checked{% endif %}>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                
+                <div class="toggle-container">
+                    <label for="communityFrequency">Update frequency</label>
+                    <select id="communityFrequency" name="community_frequency" class="frequency-select">
+                        <option value="immediately" {% if alert_prefs.community_frequency == 'immediately' %}selected{% endif %}>Immediately</option>
+                        <option value="daily" {% if alert_prefs.community_frequency == 'daily' %}selected{% endif %}>Daily digest</option>
+                        <option value="weekly" {% if alert_prefs.community_frequency == 'weekly' or not alert_prefs.community_frequency %}selected{% endif %}>Weekly summary</option>
+                    </select>
+                </div>
+                
+                <div class="toggle-container">
+                    <label for="meetingReminders">Meeting reminders</label>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="meetingReminders" name="meeting_reminders" {% if alert_prefs.meeting_reminders %}checked{% endif %}>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="alert-card">
+                <div class="alert-icon">⚠️</div>
+                <h3>Emergency Alerts</h3>
+                <p class="alert-desc">Receive critical alerts about immediate dangers such as active crimes, severe weather, or other emergencies in your area.</p>
+                
+                <div class="toggle-container">
+                    <label for="emergencyAlerts">Enable emergency alerts</label>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="emergencyAlerts" name="emergency_alerts" {% if alert_prefs.emergency_alerts %}checked{% endif %}>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                
+                <div class="toggle-container">
+                    <label for="alertTypes">Alert types</label>
+                    <select id="alertTypes" name="alert_types" class="frequency-select" multiple>
+                        {% set alert_types = alert_prefs.alert_types.split(',') if alert_prefs.alert_types else [] %}
+                        <option value="active_crime" {% if 'active_crime' in alert_types %}selected{% endif %}>Active crime incidents</option>
+                        <option value="severe_weather" {% if 'severe_weather' in alert_types %}selected{% endif %}>Severe weather</option>
+                        <option value="missing_person" {% if 'missing_person' in alert_types %}selected{% endif %}>Missing person reports</option>
+                        <option value="traffic" {% if 'traffic' in alert_types %}selected{% endif %}>Major traffic incidents</option>
+                    </select>
+                </div>
+                
+                <div class="toggle-container">
+                    <label for="emergencyLocation">Monitor location</label>
+                    <input type="text" id="emergencyLocation" name="emergency_location" class="location-input" value="{{ alert_prefs.emergency_location or current_user.jurisdiction or '' }}" placeholder="Enter your neighborhood or area">
+                </div>
+            </div>
+        </div>
+
+        <div class="notification-preferences">
+            <h3>Notification Preferences</h3>
+            <div class="contact-methods">
+                <div class="method-card">
+                    <label>
+                        <input type="checkbox" name="notify_email" {% if alert_prefs.notify_email %}checked{% endif %}>
+                        Email Notifications
+                    </label>
+                    <p>We'll send alerts to your registered email address.</p>
+                    <input type="email" class="contact-info" name="email" value="{{ current_user.email }}" placeholder="Your email address">
+                </div>
+                
+                <div class="method-card">
+                    <label>
+                        <input type="checkbox" name="notify_sms" {% if alert_prefs.notify_sms %}checked{% endif %}>
+                        SMS Notifications
+                    </label>
+                    <p>We'll send text messages for critical alerts. Standard messaging rates may apply.</p>
+                    <input type="tel" class="contact-info" name="phone" value="{{ current_user.phone or '' }}" placeholder="Your phone number">
+                </div>
+                
+                <div class="method-card">
+                    <label>
+                        <input type="checkbox" name="notify_app" {% if alert_prefs.notify_app %}checked{% endif %}>
+                        In-App Notifications
+                    </label>
+                    <p>Get push notifications in the OnAlert app.</p>
+                    <select class="contact-info" name="notification_sound">
+                        <option value="default" {% if alert_prefs.notification_sound == 'default' or not alert_prefs.notification_sound %}selected{% endif %}>Default sound</option>
+                        <option value="urgent" {% if alert_prefs.notification_sound == 'urgent' %}selected{% endif %}>Urgent alert</option>
+                        <option value="subtle" {% if alert_prefs.notification_sound == 'subtle' %}selected{% endif %}>Subtle notification</option>
+                        <option value="none" {% if alert_prefs.notification_sound == 'none' %}selected{% endif %}>No sound</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="toggle-container">
+                <label for="silentHours">Enable silent hours</label>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="silentHours" name="silent_hours" {% if alert_prefs.silent_hours %}checked{% endif %}>
+                    <span class="slider"></span>
+                </label>
+            </div>
+            
+            <div id="silentHoursConfig" style="display: {% if alert_prefs.silent_hours %}block{% else %}none{% endif %}; margin-top: 15px;">
+                <div style="display: flex; gap: 15px;">
+                    <div style="flex: 1;">
+                        <label for="silentStart" style="display: block; margin-bottom: 5px; color: var(--text-primary);">Start time</label>
+                        <input type="time" id="silentStart" name="silent_start" class="location-input" value="{{ alert_prefs.silent_start or '22:00' }}">
+                    </div>
+                    <div style="flex: 1;">
+                        <label for="silentEnd" style="display: block; margin-bottom: 5px; color: var(--text-primary);">End time</label>
+                        <input type="time" id="silentEnd" name="silent_end" class="location-input" value="{{ alert_prefs.silent_end or '07:00' }}">
+                    </div>
+                </div>
+                <p style="margin-top: 10px; font-size: 0.9rem; color: var(--text-secondary);">During silent hours, you'll only receive emergency alerts.</p>
+            </div>
+        </div>
+
+        <button type="submit" class="btn-save">Save Alert Preferences</button>
+    </form>
+</section>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Handle silent hours toggle
+    const silentHoursToggle = document.getElementById('silentHours');
+    const silentHoursConfig = document.getElementById('silentHoursConfig');
+    
+    silentHoursToggle.addEventListener('change', function() {
+        silentHoursConfig.style.display = this.checked ? 'block' : 'none';
+    });
+
+    // Handle form submission
+    document.getElementById('alertsForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(this);
+        
+        fetch("{{ url_for('save_alerts') }}", {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showSuccessMessage(data.message);
+            } else {
+                showErrorMessage(data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error saving alert preferences:', error);
+            showErrorMessage('An error occurred while saving your preferences.');
+        });
+    });
+    
+    // For multi-select to work properly
+    const alertTypesSelect = document.getElementById('alertTypes');
+    alertTypesSelect.size = 4; // Show all options
+    
+    // Ensure at least one contact method is selected
+    const contactMethods = document.querySelectorAll('.method-card input[type="checkbox"]');
+    contactMethods.forEach(method => {
+        method.addEventListener('change', function() {
+            // Check if at least one is checked
+            const atLeastOneChecked = Array.from(contactMethods).some(m => m.checked);
+            if (!atLeastOneChecked) {
+                alert('You must enable at least one notification method.');
+                this.checked = true;
+            }
+        });
+    });
+});
+
+function showSuccessMessage(message) {
+    // Create and show a success message
+    const alertDiv = document.createElement('div');
+    alertDiv.className = 'alert alert-success success-message';
+    alertDiv.role = 'alert';
+    alertDiv.style.position = 'fixed';
+    alertDiv.style.top = '20px';
+    alertDiv.style.left = '50%';
+    alertDiv.style.transform = 'translateX(-50%)';
+    alertDiv.style.zIndex = '9999';
+    alertDiv.style.padding = '15px 25px';
+    alertDiv.style.borderRadius = '8px';
+    alertDiv.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
+    
+    alertDiv.textContent = message || 'Alert preferences saved successfully!';
+    
+    document.body.appendChild(alertDiv);
+    
+    // Remove after 5 seconds
+    setTimeout(() => {
+        alertDiv.style.opacity = '0';
+        alertDiv.style.transition = 'opacity 0.5s ease';
+        setTimeout(() => alertDiv.remove(), 500);
+    }, 5000);
+}
+
+function showErrorMessage(message) {
+    // Create and show an error message
+    const alertDiv = document.createElement('div');
+    alertDiv.className = 'alert alert-danger success-message';
+    alertDiv.role = 'alert';
+    alertDiv.style.position = 'fixed';
+    alertDiv.style.top = '20px';
+    alertDiv.style.left = '50%';
+    alertDiv.style.transform = 'translateX(-50%)';
+    alertDiv.style.zIndex = '9999';
+    alertDiv.style.padding = '15px 25px';
+    alertDiv.style.borderRadius = '8px';
+    alertDiv.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
+    
+    alertDiv.textContent = message || 'An error occurred. Please try again.';
+    
+    document.body.appendChild(alertDiv);
+    
+    // Remove after 5 seconds
+    setTimeout(() => {
+        alertDiv.style.opacity = '0';
+        alertDiv.style.transition = 'opacity 0.5s ease';
+        setTimeout(() => alertDiv.remove(), 500);
+    }, 5000);
+}
+</script>
+{% endblock %} 

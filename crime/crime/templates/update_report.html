@@ -1,0 +1,288 @@
+{% extends "base.html" %}
+
+{% block title %}Update Report #{{ report.id }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .action-btn {
+        border: 1px solid rgba(0, 0, 0, 0.2);
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    
+    .action-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    }
+    
+    html[data-theme="light"] .action-btn {
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+        border: 1px solid rgba(0, 0, 0, 0.2);
+        color: white;
+        font-weight: 600;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+    }
+    
+    html[data-theme="light"] .btn-secondary.action-btn {
+        background-color: #6c757d !important;
+    }
+    
+    html[data-theme="light"] .btn-success.action-btn {
+        background-color: #198754 !important;
+    }
+    
+    html[data-theme="light"] .form-check-input {
+        border: 1px solid rgba(0, 0, 0, 0.4);
+    }
+    
+    html[data-theme="light"] .form-check-label {
+        color: #333;
+        font-weight: 500;
+    }
+    
+    .form-check {
+        background-color: rgba(0, 0, 0, 0.1);
+        padding: 10px;
+        border-radius: 8px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    html[data-theme="light"] .form-check {
+        background-color: rgba(0, 0, 0, 0.1);
+        border: 1px solid rgba(0, 0, 0, 0.1);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="update-report">
+    <div class="container mt-4">
+        <div class="row">
+            <div class="col-md-10 offset-md-1">
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb glass-effect p-3">
+                        <li class="breadcrumb-item"><a href="{{ url_for('admin_dashboard') }}">Admin Dashboard</a></li>
+                        <li class="breadcrumb-item active" aria-current="page">Update Report #{{ report.id }}</li>
+                    </ol>
+                </nav>
+                
+                <div class="card glass-effect mb-4">
+                    <div class="card-header">
+                        <h3 class="mb-0"><i class="fas fa-edit me-2"></i>Update Report #{{ report.id }}</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <h4 class="border-bottom pb-2">{{ report.title }}</h4>
+                                <p class="text-muted">
+                                    <i class="fas fa-user me-1"></i> Reported by <strong>{{ report.author.username }}</strong><br>
+                                    <i class="fas fa-calendar-alt me-1"></i> <strong>{{ report.timestamp.strftime('%Y-%m-%d %H:%M') }}</strong>
+                                </p>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <h5><i class="fas fa-map-marker-alt me-1"></i> Location:</h5>
+                                    <p>{{ report.location }}</p>
+                                    <div id="mapContainer" style="height: 200px;" class="border rounded glass-effect"></div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <h5><i class="fas fa-align-left me-1"></i> Description:</h5>
+                            <div class="card glass-effect">
+                                <div class="card-body">
+                                    {{ report.description }}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <form method="POST" action="{{ url_for('update_report', report_id=report.id) }}" id="updateForm">
+                            <input type="hidden" id="officer_location" name="officer_location">
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="status" class="form-label"><b>Status:</b></label>
+                                    <select class="form-select glass-effect" id="status" name="status">
+                                        <option value="pending" {% if report.status == 'pending' %}selected{% endif %}>Submitted</option>
+                                        <option value="under_review" {% if report.status == 'under_review' %}selected{% endif %}>Under Review</option>
+                                        <option value="investigating" {% if report.status == 'investigating' %}selected{% endif %}>Investigating</option>
+                                        <option value="in_progress" {% if report.status == 'in_progress' %}selected{% endif %}>In Progress</option>
+                                        <option value="resolved" {% if report.status == 'resolved' %}selected{% endif %}>Resolved</option>
+                                        <option value="closed" {% if report.status == 'closed' %}selected{% endif %}>Closed</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="col-md-12 mb-3">
+                                    <label for="notes" class="form-label"><b>Admin Notes:</b></label>
+                                    <textarea class="form-control glass-effect" id="notes" name="notes" rows="4" placeholder="Add your investigation notes here...">{{ report.notes }}</textarea>
+                                </div>
+                                
+                                <div class="col-md-12 mb-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="notify_user" name="notify_user" {% if not config.MAIL_USERNAME %}disabled{% endif %}>
+                                        <label class="form-check-label" for="notify_user">
+                                            <i class="fas fa-envelope me-1"></i> Notify user of status change via email
+                                            {% if not config.MAIL_USERNAME %}
+                                            <small class="text-muted">(Email notifications are currently disabled)</small>
+                                            {% endif %}
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="d-flex justify-content-between mt-3">
+                                <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary glass-effect action-btn">
+                                    <i class="fas fa-arrow-left me-1"></i> Back to Dashboard
+                                </a>
+                                <button type="submit" class="btn btn-success glass-effect action-btn" id="updateButton">
+                                    <i class="fas fa-save me-1"></i> Update Report
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize map for the report location
+    var map = L.map('mapContainer').setView([{{ report.latitude }}, {{ report.longitude }}], 13);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+        className: 'dark-map'
+    }).addTo(map);
+    
+    // Add marker for the report location
+    L.marker([{{ report.latitude }}, {{ report.longitude }}]).addTo(map)
+        .bindPopup('{{ report.title }}')
+        .openPopup();
+
+    // Get officer's current location
+    if ("geolocation" in navigator) {
+        navigator.geolocation.getCurrentPosition(function(position) {
+            const lat = position.coords.latitude;
+            const lng = position.coords.longitude;
+            
+            // Use reverse geocoding to get location name
+            fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.address) {
+                        // Get the city or state name, prioritizing Indian locations
+                        const location = data.address.city || data.address.state || data.address.town || 
+                                         data.address.village || data.address.suburb || 'Delhi';
+                        
+                        // If country is India or location is identifiable, use it
+                        if (data.address.country === 'India' || location) {
+                            document.getElementById('officer_location').value = location;
+                        } else {
+                            // Default to Delhi if no Indian location is found
+                            document.getElementById('officer_location').value = 'Delhi';
+                        }
+                    } else {
+                        // Default to Delhi if no address data is found
+                        document.getElementById('officer_location').value = 'Delhi';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error getting location name:', error);
+                    // Default to Delhi on error
+                    document.getElementById('officer_location').value = 'Delhi';
+                });
+        }, function(error) {
+            console.error('Error getting location:', error);
+            // Default to Delhi on geolocation error
+            document.getElementById('officer_location').value = 'Delhi';
+        });
+    } else {
+        // Default to Delhi if geolocation is not available
+        document.getElementById('officer_location').value = 'Delhi';
+    }
+
+    // Handle form submission
+    $('#updateForm').on('submit', function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(this);
+        const status = formData.get('status');
+        const notes = formData.get('notes');
+        
+        // Show loading state
+        const updateButton = $('#updateButton');
+        const originalText = updateButton.html();
+        updateButton.html('<i class="fas fa-spinner fa-spin me-1"></i> Updating...');
+        updateButton.prop('disabled', true);
+
+        // Submit form via AJAX
+        $.ajax({
+            url: $(this).attr('action'),
+            method: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            success: function(response) {
+                // Update status badges in all open windows
+                const event = new CustomEvent('reportUpdated', {
+                    detail: {
+                        reportId: {{ report.id }},
+                        status: status,
+                        notes: notes
+                    }
+                });
+                window.dispatchEvent(event);
+                
+                // Show success message
+                const alert = $('<div class="alert alert-success glass-effect">Report updated successfully!</div>');
+                $('.card-body').prepend(alert);
+                setTimeout(() => alert.fadeOut(), 3000);
+                
+                // Redirect to dashboard after a short delay
+                setTimeout(() => window.location.href = "{{ url_for('admin_dashboard') }}", 1500);
+            },
+            error: function() {
+                const alert = $('<div class="alert alert-danger glass-effect">Error updating report. Please try again.</div>');
+                $('.card-body').prepend(alert);
+                setTimeout(() => alert.fadeOut(), 3000);
+            },
+            complete: function() {
+                // Restore button state
+                updateButton.html(originalText);
+                updateButton.prop('disabled', false);
+            }
+        });
+    });
+});
+
+// Listen for updates from other windows
+window.addEventListener('reportUpdated', function(e) {
+    const { reportId, status, notes } = e.detail;
+    
+    // Update any matching report cards or status badges on the page
+    $(`.report-status-${reportId}`).text(status.toUpperCase());
+    $(`.report-notes-${reportId}`).text(notes);
+    
+    // Update status badge colors
+    const badge = $(`.report-status-${reportId}`);
+    badge.removeClass('bg-warning bg-info bg-success bg-secondary');
+    switch(status) {
+        case 'pending':
+            badge.addClass('bg-warning');
+            break;
+        case 'investigating':
+            badge.addClass('bg-info');
+            break;
+        case 'resolved':
+            badge.addClass('bg-success');
+            break;
+        default:
+            badge.addClass('bg-secondary');
+    }
+});
+</script>
+{% endblock %}

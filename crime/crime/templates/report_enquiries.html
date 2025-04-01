@@ -1,0 +1,294 @@
+{% extends "base.html" %}
+
+{% block title %}Report Enquiries{% endblock %}
+
+{% block extra_css %}
+<style>
+    .enquiries-container {
+        max-width: 900px;
+        margin: 40px auto;
+    }
+    
+    .report-info {
+        background: var(--glass-bg);
+        backdrop-filter: blur(8px);
+        border: 1px solid var(--glass-border);
+        border-radius: 12px;
+        padding: 20px;
+        margin-bottom: 30px;
+    }
+    
+    .report-info h3 {
+        margin-bottom: 15px;
+        color: var(--text-primary);
+    }
+    
+    .report-meta {
+        display: flex;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        margin-bottom: 15px;
+    }
+    
+    .report-meta div {
+        margin-bottom: 10px;
+    }
+    
+    .meta-label {
+        font-weight: 600;
+        color: var(--text-secondary);
+        margin-right: 8px;
+    }
+    
+    .status-badge {
+        display: inline-block;
+        padding: 4px 10px;
+        border-radius: 20px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        text-transform: uppercase;
+    }
+    
+    .status-badge.pending {
+        background-color: #ffc107;
+        color: #212529;
+    }
+    
+    .status-badge.investigating {
+        background-color: #17a2b8;
+        color: white;
+    }
+    
+    .status-badge.in_progress {
+        background-color: #6f42c1;
+        color: white;
+    }
+    
+    .status-badge.resolved {
+        background-color: #28a745;
+        color: white;
+    }
+    
+    .report-description {
+        color: var(--text-secondary);
+        line-height: 1.6;
+        margin-bottom: 15px;
+    }
+    
+    .enquiry-list {
+        margin-top: 30px;
+    }
+    
+    .enquiry-item {
+        background: var(--glass-bg);
+        backdrop-filter: blur(8px);
+        border: 1px solid var(--glass-border);
+        border-radius: 12px;
+        padding: 20px;
+        margin-bottom: 20px;
+    }
+    
+    .enquiry-header {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 15px;
+    }
+    
+    .enquiry-user {
+        font-weight: 600;
+        color: var(--text-primary);
+    }
+    
+    .enquiry-date {
+        font-size: 0.9rem;
+        color: var(--text-secondary);
+    }
+    
+    .enquiry-message {
+        padding: 15px;
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 8px;
+        color: var(--text-primary);
+        line-height: 1.6;
+        margin-bottom: 20px;
+    }
+    
+    .enquiry-response {
+        padding: 15px;
+        background: rgba(0, 123, 255, 0.1);
+        border-radius: 8px;
+        color: var(--text-primary);
+        line-height: 1.6;
+        border-left: 4px solid #007bff;
+        margin-bottom: 10px;
+    }
+    
+    .response-label {
+        font-weight: 600;
+        margin-bottom: 10px;
+        color: #007bff;
+    }
+    
+    .response-form {
+        margin-top: 20px;
+        padding: 20px;
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 8px;
+    }
+    
+    .form-control {
+        width: 100%;
+        padding: 12px;
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid var(--glass-border);
+        border-radius: 8px;
+        color: var(--text-primary);
+        margin-bottom: 15px;
+        resize: vertical;
+    }
+    
+    .btn-respond {
+        background-color: #007bff;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: 600;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-respond:hover {
+        background-color: #0069d9;
+        transform: translateY(-2px);
+    }
+    
+    .new-enquiry-form {
+        margin-top: 30px;
+        padding: 20px;
+        background: var(--glass-bg);
+        backdrop-filter: blur(8px);
+        border: 1px solid var(--glass-border);
+        border-radius: 12px;
+    }
+    
+    .new-enquiry-form h3 {
+        margin-bottom: 15px;
+        color: var(--text-primary);
+    }
+    
+    .back-link {
+        display: inline-block;
+        margin-bottom: 20px;
+        color: var(--text-primary);
+        text-decoration: none;
+        transition: all 0.3s ease;
+    }
+    
+    .back-link:hover {
+        color: #007bff;
+        transform: translateX(-5px);
+    }
+    
+    .back-link i {
+        margin-right: 5px;
+    }
+    
+    .no-enquiries {
+        text-align: center;
+        padding: 30px;
+        background: var(--glass-bg);
+        backdrop-filter: blur(8px);
+        border: 1px solid var(--glass-border);
+        border-radius: 12px;
+        color: var(--text-secondary);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="enquiries-container">
+    <a href="{{ url_for('reports', crime_id=report.id) }}" class="back-link">
+        <i class="fas fa-arrow-left"></i> Back to Report
+    </a>
+    
+    <div class="report-info">
+        <h3>Report #{{ report.id }}: {{ report.title }}</h3>
+        
+        <div class="report-meta">
+            <div>
+                <span class="meta-label">Date:</span>
+                <span>{{ report.timestamp.strftime('%B %d, %Y at %I:%M %p') }}</span>
+            </div>
+            
+            <div>
+                <span class="meta-label">Status:</span>
+                <span class="status-badge {{ report.status }}">{{ report.status|title }}</span>
+            </div>
+            
+            <div>
+                <span class="meta-label">Location:</span>
+                <span>{{ report.location }}</span>
+            </div>
+        </div>
+        
+        <div class="report-description">
+            {{ report.description }}
+        </div>
+    </div>
+    
+    <h3>Enquiries and Responses</h3>
+    
+    <div class="enquiry-list">
+        {% if enquiries %}
+            {% for enquiry in enquiries %}
+            <div class="enquiry-item">
+                <div class="enquiry-header">
+                    <div class="enquiry-user">
+                        {{ enquiry.user.username }}
+                    </div>
+                    <div class="enquiry-date">
+                        {{ enquiry.created_at.strftime('%d %b %Y - %H:%M') }}
+                    </div>
+                </div>
+                
+                <div class="enquiry-message">
+                    {{ enquiry.message }}
+                </div>
+                
+                {% if enquiry.is_responded %}
+                <div class="enquiry-response">
+                    <div class="response-label">Response:</div>
+                    {{ enquiry.response }}
+                    <div class="enquiry-date">
+                        {{ enquiry.updated_at.strftime('%d %b %Y - %H:%M') }}
+                    </div>
+                </div>
+                {% elif current_user.is_police or current_user.is_admin %}
+                <form action="{{ url_for('respond_enquiry', enquiry_id=enquiry.id) }}" method="POST" class="response-form">
+                    <textarea name="response" class="form-control" rows="4" placeholder="Type your response here..." required></textarea>
+                    <button type="submit" class="btn-respond">Submit Response</button>
+                </form>
+                {% else %}
+                <p class="text-muted">Awaiting response from authorities.</p>
+                {% endif %}
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="no-enquiries">
+                <p>No enquiries have been submitted for this report yet.</p>
+            </div>
+        {% endif %}
+    </div>
+    
+    {% if report.user_id == current_user.id %}
+    <div class="new-enquiry-form">
+        <h3>Submit a New Enquiry</h3>
+        <form action="{{ url_for('submit_enquiry', report_id=report.id) }}" method="POST">
+            <textarea name="enquiry_message" class="form-control" rows="4" placeholder="Type your enquiry here..." required></textarea>
+            <button type="submit" class="btn-respond">Submit Enquiry</button>
+        </form>
+    </div>
+    {% endif %}
+</div>
+{% endblock %} 

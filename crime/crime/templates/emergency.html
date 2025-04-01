@@ -1,0 +1,339 @@
+{% extends "base.html" %}
+
+{% block title %}Emergency Contacts{% endblock %}
+
+{% block extra_css %}
+<style>
+    .emergency-section {
+        padding: 40px 0;
+    }
+    
+    .emergency-title {
+        text-align: center;
+        margin-bottom: 50px;
+        font-family: 'Orbitron', sans-serif;
+        color: var(--text-primary);
+    }
+    
+    .emergency-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 25px;
+        margin-bottom: 50px;
+    }
+    
+    .emergency-card {
+        background: var(--glass-bg);
+        backdrop-filter: blur(8px);
+        border: 1px solid var(--glass-border);
+        border-radius: 15px;
+        padding: 25px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        transition: all 0.3s ease;
+    }
+    
+    .emergency-card:hover {
+        transform: translateY(-10px);
+        box-shadow: 0 15px 30px rgba(0, 0, 0, 0.15);
+    }
+    
+    .emergency-icon {
+        font-size: 36px;
+        margin-bottom: 20px;
+        color: #ff3b30;
+    }
+    
+    .emergency-number {
+        font-family: 'Share Tech Mono', monospace;
+        font-size: 28px;
+        margin-bottom: 15px;
+        color: var(--text-primary);
+    }
+    
+    .emergency-name {
+        font-weight: 600;
+        font-size: 18px;
+        margin-bottom: 20px;
+        color: var(--text-primary);
+    }
+    
+    .call-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        padding: 12px 25px;
+        background-color: #007bff;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        margin-bottom: 10px;
+        width: 80%;
+    }
+    
+    .call-btn:hover {
+        background-color: #0056b3;
+        transform: translateY(-3px);
+        box-shadow: 0 5px 15px rgba(0, 123, 255, 0.4);
+        color: white;
+    }
+    
+    .availability {
+        font-size: 14px;
+        color: var(--text-secondary);
+        margin-top: 10px;
+    }
+    
+    .download-section {
+        background: var(--glass-bg);
+        backdrop-filter: blur(10px);
+        border: 1px solid var(--glass-border);
+        border-radius: 15px;
+        padding: 30px;
+        margin-bottom: 50px;
+        text-align: center;
+    }
+    
+    .download-title {
+        font-size: 24px;
+        margin-bottom: 20px;
+        color: var(--text-primary);
+    }
+    
+    .download-desc {
+        margin-bottom: 30px;
+        color: var(--text-secondary);
+    }
+    
+    .download-buttons {
+        display: flex;
+        justify-content: center;
+        gap: 20px;
+        flex-wrap: wrap;
+    }
+    
+    .download-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        padding: 15px 30px;
+        background-color: #007bff;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-decoration: none;
+    }
+    
+    .download-btn:hover {
+        background-color: #0056b3;
+        transform: translateY(-3px);
+        box-shadow: 0 5px 15px rgba(0, 123, 255, 0.4);
+        color: white;
+    }
+    
+    .tips-section {
+        margin-top: 50px;
+    }
+    
+    .tips-title {
+        font-size: 24px;
+        margin-bottom: 30px;
+        color: var(--text-primary);
+    }
+    
+    .tips-list {
+        list-style: none;
+        padding: 0;
+    }
+    
+    .tip-item {
+        background: var(--glass-bg);
+        backdrop-filter: blur(8px);
+        border: 1px solid var(--glass-border);
+        border-radius: 10px;
+        padding: 20px;
+        margin-bottom: 15px;
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        transition: all 0.3s ease;
+    }
+    
+    .tip-item:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+    }
+    
+    .tip-icon {
+        color: #ff9500;
+        font-size: 24px;
+        flex-shrink: 0;
+    }
+    
+    .tip-text {
+        color: var(--text-primary);
+        font-size: 16px;
+        line-height: 1.5;
+    }
+    
+    /* Fix for light theme */
+    [data-theme="light"] .call-btn, 
+    [data-theme="light"] .download-btn {
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        color: white;
+    }
+    
+    [data-theme="light"] .call-btn:hover, 
+    [data-theme="light"] .download-btn:hover {
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        color: white;
+    }
+    
+    [data-theme="light"] .emergency-card {
+        background: white;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+    }
+    
+    [data-theme="light"] .download-section {
+        background: white;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+    }
+    
+    [data-theme="light"] .tip-item {
+        background: white;
+        box-shadow: 0 3px 10px rgba(0, 0, 0, 0.05);
+    }
+    
+    [data-theme="light"] .tip-icon {
+        color: #ff7d00;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="emergency-section">
+    <div class="container">
+        <h1 class="emergency-title">EMERGENCY CONTACTS</h1>
+        
+        <div class="emergency-grid">
+            <div class="emergency-card">
+                <i class="fas fa-phone-alt emergency-icon"></i>
+                <div class="emergency-number">100</div>
+                <div class="emergency-name">Police Emergency</div>
+                <a href="tel:100" class="call-btn">
+                    <i class="fas fa-phone"></i> Call Now
+                </a>
+                <div class="availability">24/7 Available</div>
+            </div>
+            
+            <div class="emergency-card">
+                <i class="fas fa-fire emergency-icon"></i>
+                <div class="emergency-number">101</div>
+                <div class="emergency-name">Fire Department</div>
+                <a href="tel:101" class="call-btn">
+                    <i class="fas fa-phone"></i> Call Now
+                </a>
+                <div class="availability">24/7 Available</div>
+            </div>
+            
+            <div class="emergency-card">
+                <i class="fas fa-ambulance emergency-icon"></i>
+                <div class="emergency-number">102</div>
+                <div class="emergency-name">Ambulance</div>
+                <a href="tel:102" class="call-btn">
+                    <i class="fas fa-phone"></i> Call Now
+                </a>
+                <div class="availability">24/7 Available</div>
+            </div>
+            
+            <div class="emergency-card">
+                <i class="fas fa-female emergency-icon"></i>
+                <div class="emergency-number">1091</div>
+                <div class="emergency-name">Women Helpline</div>
+                <a href="tel:1091" class="call-btn">
+                    <i class="fas fa-phone"></i> Call Now
+                </a>
+                <div class="availability">24/7 Available</div>
+            </div>
+            
+            <div class="emergency-card">
+                <i class="fas fa-child emergency-icon"></i>
+                <div class="emergency-number">1098</div>
+                <div class="emergency-name">Child Helpline</div>
+                <a href="tel:1098" class="call-btn">
+                    <i class="fas fa-phone"></i> Call Now
+                </a>
+                <div class="availability">24/7 Available</div>
+            </div>
+            
+            <div class="emergency-card">
+                <i class="fas fa-balance-scale emergency-icon"></i>
+                <div class="emergency-number">1031</div>
+                <div class="emergency-name">Anti-Corruption</div>
+                <a href="tel:1031" class="call-btn">
+                    <i class="fas fa-phone"></i> Call Now
+                </a>
+                <div class="availability">24/7 Available</div>
+            </div>
+        </div>
+        
+        <div class="download-section">
+            <h2 class="download-title">Download Emergency Contacts</h2>
+            <p class="download-desc">Save these numbers on your phone for quick access during emergencies.</p>
+            
+            <div class="download-buttons">
+                <a href="{{ url_for('download_emergency_pdf') }}" class="download-btn">
+                    <i class="fas fa-file-pdf"></i> Download PDF
+                </a>
+                
+                <a href="#" class="download-btn">
+                    <i class="fas fa-address-card"></i> Download Contacts (VCard)
+                </a>
+            </div>
+        </div>
+        
+        <div class="tips-section">
+            <h2 class="tips-title">Emergency Tips</h2>
+            
+            <ul class="tips-list">
+                <li class="tip-item">
+                    <i class="fas fa-bolt tip-icon"></i>
+                    <span class="tip-text">Stay calm and speak clearly when calling emergency services</span>
+                </li>
+                
+                <li class="tip-item">
+                    <i class="fas fa-bolt tip-icon"></i>
+                    <span class="tip-text">Provide exact location details with landmarks</span>
+                </li>
+                
+                <li class="tip-item">
+                    <i class="fas fa-bolt tip-icon"></i>
+                    <span class="tip-text">Keep your phone charged and have emergency numbers saved</span>
+                </li>
+                
+                <li class="tip-item">
+                    <i class="fas fa-bolt tip-icon"></i>
+                    <span class="tip-text">Follow instructions given by emergency operators</span>
+                </li>
+                
+                <li class="tip-item">
+                    <i class="fas fa-bolt tip-icon"></i>
+                    <span class="tip-text">If possible, have someone meet emergency services at the entrance/road</span>
+                </li>
+            </ul>
+        </div>
+    </div>
+</section>
+{% endblock %} 
